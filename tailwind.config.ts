@@ -12,12 +12,12 @@ const config: Config = {
     extend: {
       colors: {
         dark: {
-          bg: "#0B0F19",
-          surface: "#111827",
-          card: "#151e31",
-          elevated: "#1c273e",
-          border: "#1f2d45",
-          muted: "#94a3b8",
+          bg: "#f4f6f8",
+          surface: "#ffffff",
+          card: "#ffffff",
+          elevated: "#f8fafc",
+          border: "#e2e8f0",
+          muted: "#64748b",
         },
         iot: {
           emerald: "#10b981",

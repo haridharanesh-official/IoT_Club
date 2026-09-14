@@ -6,20 +6,22 @@ import { ClubConfig } from "./types";
  * Neutral placeholders are used so no fake external college or private contact is hardcoded.
  */
 export const defaultClubConfig: ClubConfig = {
-  clubName: "IoT Club",
-  subtitle: "Learning • Building • Innovating",
-  collegeName: "Engineering Institute",
+  clubName: "Internet of Things Club",
+  subtitle: "Learn. Build. Connect. Innovate.",
+  collegeName: "Sri Shakthi Institute of Engineering and Technology",
   logoText: "IoT CLUB",
-  department: "Interdisciplinary Technology & Innovation Center",
+  department: "Sri Shakthi Institute of Engineering and Technology",
   description:
-    "A student-driven digital engineering ecosystem for embedded systems, robotics, edge computing, and real-world hardware innovation.",
-  primaryContact: "Faculty Mentor / Lab Admin",
-  email: "contact@iotclub.org",
-  address: "IoT & Embedded Systems Laboratory, Tech Block, Level 3",
-  githubOrg: "iot-club-org",
+    "A student-driven technical community focused on transforming ideas into intelligent, connected systems through IoT, Embedded Systems, Sensors, Microcontrollers, Wireless Communication, Robotics, Automation, Cloud Computing and Edge Computing.",
+  footerDescription:
+    "The Internet of Things Club at Sri Shakthi Institute of Engineering and Technology provides students with structured, hands-on learning in IoT, Embedded Systems, Robotics, Automation, Wireless Communication, Cloud and Edge Computing through training, projects, certifications, hackathons and real-world innovation.",
+  primaryContact: "Faculty Mentor / IoT Club Coordinator",
+  email: "iotclub@srishakthi.ac.in",
+  address: "IoT & Embedded Systems Laboratory, Sri Shakthi Institute of Engineering and Technology, Coimbatore, Tamil Nadu",
+  githubOrg: "iot-club-siet",
   socialLinks: {
-    github: "https://github.com/iot-club-org",
-    linkedin: "https://linkedin.com/company/iot-club-org",
-    discord: "https://discord.gg/iotclub",
+    github: "https://github.com",
+    linkedin: "https://linkedin.com",
+    discord: "https://discord.gg",
   },
 };

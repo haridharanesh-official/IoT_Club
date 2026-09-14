@@ -128,95 +128,95 @@ export const AIMentorModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-3 backdrop-blur-sm">
-      <div className="bg-dark-surface border border-dark-border rounded-2xl w-full max-w-2xl h-[620px] flex flex-col shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-3">
+      <div className="bg-white/95 border border-slate-200/90 rounded-3xl w-full max-w-2xl h-[620px] flex flex-col shadow-2xl overflow-hidden backdrop-blur-xl">
         {/* Header */}
-        <div className="p-4 bg-dark-card border-b border-dark-border flex items-center justify-between">
+        <div className="p-4 bg-white border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-iot-violet/20 border border-iot-violet/50 flex items-center justify-center text-iot-violet">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600">
               <Bot className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-white text-sm">IoT Club AI Mentor</h3>
-                <span className="px-1.5 py-0.2 rounded bg-iot-emerald/20 text-emerald-400 border border-iot-emerald/40 text-[10px] font-mono">
+                <h3 className="font-bold text-slate-900 text-sm">IoT Club AI Mentor</h3>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 text-[10px] font-mono font-semibold">
                   Online
                 </span>
               </div>
-              <p className="text-xs text-slate-400">Firmware diagnostics, sensor pinouts, and curriculum guidance</p>
+              <p className="text-xs text-slate-500">Firmware diagnostics, sensor pinouts, and curriculum guidance</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition"
+            className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Message Thread */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/50">
           {messages.map((m) => (
             <div
               key={m.id}
               className={`flex flex-col ${m.sender === "user" ? "items-end" : "items-start"}`}
             >
               <div
-                className={`max-w-[85%] rounded-xl p-3 text-xs leading-relaxed ${
+                className={`max-w-[85%] rounded-2xl p-3.5 text-xs leading-relaxed shadow-xs ${
                   m.sender === "user"
-                    ? "bg-gradient-to-r from-blue-600 to-cyan-600 text-white"
-                    : "bg-dark-card border border-dark-border text-slate-200"
+                    ? "bg-gradient-to-r from-emerald-600 to-green-600 text-white"
+                    : "bg-white border border-slate-200/90 text-slate-800"
                 }`}
               >
                 <p className="whitespace-pre-line">{m.text}</p>
 
                 {m.warning && (
-                  <div className="mt-2.5 p-2 rounded bg-amber-950/40 border border-amber-800/60 text-amber-300 text-[11px] flex items-start gap-1.5">
-                    <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                  <div className="mt-2.5 p-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-[11px] flex items-start gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0 text-amber-600" />
                     <span>{m.warning}</span>
                   </div>
                 )}
 
                 {m.codeSnippet && (
                   <div className="mt-2.5">
-                    <div className="text-[10px] text-slate-400 font-mono mb-1 flex items-center gap-1">
-                      <Code2 className="w-3 h-3" /> Diagnostic Code
+                    <div className="text-[10px] text-slate-500 font-mono mb-1 flex items-center gap-1 font-semibold">
+                      <Code2 className="w-3 h-3 text-emerald-600" /> Diagnostic Code
                     </div>
-                    <pre className="text-[11px] font-mono bg-slate-950 p-2 rounded text-emerald-400 border border-slate-800 overflow-x-auto">
+                    <pre className="text-[11px] font-mono bg-slate-900 p-2.5 rounded-xl text-emerald-300 border border-slate-800 overflow-x-auto">
                       {m.codeSnippet}
                     </pre>
                   </div>
                 )}
 
                 {m.recommendedModule && (
-                  <div className="mt-2 pt-2 border-t border-slate-700/60 flex items-center justify-between text-[11px] text-iot-cyan">
-                    <span className="font-medium">Recommended: {m.recommendedModule.title}</span>
+                  <div className="mt-2 pt-2 border-t border-slate-200 flex items-center justify-between text-[11px] text-emerald-700 font-semibold">
+                    <span>Recommended: {m.recommendedModule.title}</span>
                   </div>
                 )}
               </div>
-              <span className="text-[10px] text-slate-500 mt-1 px-1">{m.timestamp}</span>
+              <span className="text-[10px] text-slate-400 mt-1 px-1">{m.timestamp}</span>
             </div>
           ))}
 
           {isTyping && (
-            <div className="flex items-center gap-2 text-slate-400 text-xs py-1">
-              <Sparkles className="w-3.5 h-3.5 text-iot-violet animate-spin" />
+            <div className="flex items-center gap-2 text-slate-500 text-xs py-1">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-600 animate-spin" />
               <span>Analyzing circuit documentation and firmware guidelines...</span>
             </div>
           )}
         </div>
 
         {/* Suggested Quick Questions */}
-        <div className="px-4 py-2 border-t border-dark-border bg-dark-card/50">
-          <div className="text-[11px] text-slate-400 mb-1.5 font-medium flex items-center gap-1">
-            <Lightbulb className="w-3 h-3 text-amber-400" /> Common Inquiries:
+        <div className="px-4 py-2 border-t border-slate-200 bg-white">
+          <div className="text-[11px] text-slate-500 mb-1.5 font-medium flex items-center gap-1">
+            <Lightbulb className="w-3.5 h-3.5 text-amber-500" /> Suggested Inquiries:
           </div>
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
             {cannedQuestions.map((q, idx) => (
               <button
                 key={idx}
                 onClick={() => handleSend(q)}
-                className="shrink-0 px-2.5 py-1 rounded-full bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white text-[10px] transition whitespace-nowrap"
+                className="shrink-0 px-3 py-1 rounded-full bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 hover:text-slate-900 text-[11px] transition whitespace-nowrap"
               >
                 {q}
               </button>
@@ -225,18 +225,18 @@ export const AIMentorModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
         </div>
 
         {/* Input Bar */}
-        <div className="p-3 bg-dark-card border-t border-dark-border flex items-center gap-2">
+        <div className="p-3 bg-white border-t border-slate-200 flex items-center gap-2">
           <input
             type="text"
             value={inputQuery}
             onChange={(e) => setInputQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
-            placeholder="Ask a technical question (ESP32 pinouts, FreeRTOS, MQTT, wiring)..."
-            className="flex-1 bg-dark-bg border border-dark-border rounded-xl px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-iot-cyan"
+            placeholder="Ask a question (ESP32 pinouts, FreeRTOS, MQTT, wiring)..."
+            className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:bg-white transition"
           />
           <button
             onClick={() => handleSend()}
-            className="p-2 rounded-xl bg-iot-cyan hover:bg-cyan-400 text-slate-950 font-medium transition"
+            className="p-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-medium transition shadow-xs"
             title="Send inquiry"
           >
             <Send className="w-4 h-4" />

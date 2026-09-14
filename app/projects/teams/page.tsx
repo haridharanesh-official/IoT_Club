@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useIoTApp } from "@/lib/store";
-import { Users, Plus, CheckCircle2, ArrowRight, UserPlus, Sparkles, Send } from "lucide-react";
+import { Users, Plus, CheckCircle2, ArrowRight, UserPlus, Sparkles, Send, X } from "lucide-react";
 
 export default function TeamsPage() {
   const { teamRecruitments, applyToTeam, student } = useIoTApp();
@@ -28,24 +28,24 @@ export default function TeamsPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 text-slate-800">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-dark-border pb-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-6">
         <div>
-          <div className="flex items-center gap-2 text-xs font-mono text-iot-cyan mb-1">
+          <div className="flex items-center gap-2 text-xs font-mono text-emerald-700 font-bold mb-1">
             <span>PEER COLLABORATION & MATCHMAKING</span>
             <span>•</span>
-            <span className="text-emerald-400">OPEN POSITIONS</span>
+            <span className="text-emerald-600">OPEN POSITIONS</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">Project Team Formation Board</h1>
-          <p className="text-xs text-slate-400 mt-1">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">Project Team Formation Board</h1>
+          <p className="text-xs text-slate-500 mt-1">
             Discover active hardware projects seeking developers, embedded engineers, and computer vision specialists.
           </p>
         </div>
 
         <Link
           href="/projects"
-          className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition"
+          className="px-4 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold border border-slate-200 shadow-xs transition"
         >
           ← Back to Project Hub
         </Link>
@@ -56,27 +56,27 @@ export default function TeamsPage() {
         {teamRecruitments.map((post) => (
           <div
             key={post.id}
-            className="p-6 rounded-2xl bg-dark-card border border-dark-border flex flex-col justify-between space-y-5"
+            className="p-6 rounded-3xl glass-card flex flex-col justify-between space-y-5 border border-slate-200/90 shadow-xs bg-white"
           >
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-mono text-iot-cyan">PROJECT OPENING</span>
-                <span className="text-[11px] font-mono text-slate-400">
+                <span className="text-xs font-mono text-emerald-700 font-bold">PROJECT OPENING</span>
+                <span className="text-[11px] font-mono text-slate-500">
                   {post.applicantsCount} Candidates Applied
                 </span>
               </div>
-              <h3 className="text-xl font-bold text-white">{post.projectTitle}</h3>
-              <p className="text-xs text-slate-300 leading-relaxed">{post.description}</p>
+              <h3 className="text-xl font-bold text-slate-900">{post.projectTitle}</h3>
+              <p className="text-xs text-slate-600 leading-relaxed">{post.description}</p>
 
               <div>
-                <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
                   Seeking Specializations:
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {post.openRoles.map((role, idx) => (
                     <span
                       key={idx}
-                      className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-xs text-emerald-300 font-mono"
+                      className="px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 font-mono font-semibold"
                     >
                       {role}
                     </span>
@@ -85,16 +85,16 @@ export default function TeamsPage() {
               </div>
             </div>
 
-            <div className="pt-4 border-t border-dark-border flex items-center justify-between">
-              <span className="text-xs text-slate-400">
-                Lead: <span className="text-white font-medium">{post.leadName}</span>
+            <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+              <span className="text-xs text-slate-500">
+                Lead: <span className="text-slate-900 font-bold">{post.leadName}</span>
               </span>
               <button
                 onClick={() => {
                   setSelectedPostId(post.id);
                   setSelectedRole(post.openRoles[0]);
                 }}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-iot-emerald hover:bg-emerald-400 text-slate-950 font-bold text-xs transition"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs transition shadow-xs"
               >
                 <UserPlus className="w-3.5 h-3.5" />
                 <span>Apply for Role</span>
@@ -106,29 +106,38 @@ export default function TeamsPage() {
 
       {/* Application Modal */}
       {selectedPostId && activePost && (
-        <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-50">
-          <div className="bg-dark-card border border-dark-border p-6 rounded-2xl max-w-md w-full space-y-4 text-xs">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white/95 border border-slate-200 p-6 rounded-3xl max-w-md w-full space-y-4 text-xs shadow-2xl">
             {appliedSuccess ? (
               <div className="text-center py-6 space-y-2">
-                <CheckCircle2 className="w-12 h-12 text-iot-emerald mx-auto animate-bounce" />
-                <h3 className="font-bold text-white text-base">Application Submitted!</h3>
-                <p className="text-slate-300">
+                <CheckCircle2 className="w-12 h-12 text-emerald-600 mx-auto animate-bounce" />
+                <h3 className="font-bold text-slate-900 text-base">Application Submitted!</h3>
+                <p className="text-slate-600">
                   {activePost.leadName} has been notified with your student profile.
                 </p>
               </div>
             ) : (
               <form onSubmit={handleApply} className="space-y-4">
-                <div>
-                  <span className="text-[10px] font-mono text-iot-cyan uppercase">JOIN PROJECT TEAM</span>
-                  <h3 className="font-bold text-base text-white mt-0.5">{activePost.projectTitle}</h3>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-mono text-emerald-700 font-bold uppercase">JOIN PROJECT TEAM</span>
+                    <h3 className="font-bold text-base text-slate-900 mt-0.5">{activePost.projectTitle}</h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPostId(null)}
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-700"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 font-medium mb-1">Select Role You Wish to Fill *</label>
+                  <label className="block text-slate-700 font-medium mb-1">Select Role You Wish to Fill *</label>
                   <select
                     value={selectedRole}
                     onChange={(e) => setSelectedRole(e.target.value)}
-                    className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-white"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:border-emerald-500 focus:bg-white"
                   >
                     {activePost.openRoles.map((r, i) => (
                       <option key={i} value={r}>
@@ -139,31 +148,31 @@ export default function TeamsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 font-medium mb-1">Relevant Skills & Experience</label>
+                  <label className="block text-slate-700 font-medium mb-1">Relevant Skills & Experience</label>
                   <textarea
                     rows={3}
                     value={applicantNote}
                     onChange={(e) => setApplicantNote(e.target.value)}
                     placeholder="Briefly mention your prior experience with ROS, C++, computer vision..."
-                    className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-white"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:border-emerald-500 focus:bg-white"
                   />
                 </div>
 
-                <div className="p-3 rounded-lg bg-slate-900 border border-slate-800 text-[11px] text-slate-400">
-                  Submitting as <span className="text-white font-medium">{student.name}</span> (Level {student.level} • {student.rollNumber}).
+                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-[11px] text-slate-600">
+                  Submitting as <span className="text-slate-900 font-bold">{student.name}</span> (Level {student.level} • {student.rollNumber}).
                 </div>
 
                 <div className="flex justify-end gap-2 pt-2">
                   <button
                     type="button"
                     onClick={() => setSelectedPostId(null)}
-                    className="px-4 py-2 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800"
+                    className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-iot-emerald hover:bg-emerald-400 text-slate-950 font-bold"
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold shadow-xs"
                   >
                     <Send className="w-3.5 h-3.5" />
                     <span>Send Application</span>

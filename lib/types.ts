@@ -11,6 +11,27 @@ export type UserRole =
 
 export type DemoRole = "public" | "applicant" | "student" | "teacher" | "admin";
 
+export type AuthRole = "STUDENT" | "TEACHER" | "CLUB_LEAD" | "ADMIN" | "GUEST";
+
+export interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+  role: AuthRole;
+  department: string;
+  rollNumber?: string;
+  avatarUrl?: string;
+  designation?: string;
+  portalRedirect: string;
+}
+
+export interface AuthSession {
+  user: AuthUser | null;
+  isAuthenticated: boolean;
+  token: string | null;
+  expiresAt: string | null;
+}
+
 export interface ClubConfig {
   clubName: string;
   subtitle: string;
@@ -18,6 +39,7 @@ export interface ClubConfig {
   logoText: string;
   department: string;
   description: string;
+  footerDescription?: string;
   primaryContact: string;
   email: string;
   address: string;
@@ -300,6 +322,62 @@ export interface ProjectTask {
   dueDate: string;
 }
 
+export interface ProjectMember {
+  name: string;
+  role: string;
+  email?: string;
+  githubHandle?: string;
+  commits?: number;
+  isLead?: boolean;
+  avatarUrl?: string;
+}
+
+export interface RubricScore {
+  criterion: string;
+  score: number;
+  maxScore: number;
+  feedback?: string;
+}
+
+export interface ProjectReviewRound {
+  id: string;
+  roundKey: "R1" | "R2" | "FINAL";
+  roundTitle: string;
+  status: "PENDING" | "UNDER_EVALUATION" | "APPROVED" | "REVISIONS_REQUESTED";
+  score?: number;
+  maxScore?: number;
+  reviewerName?: string;
+  reviewerRole?: "TEACHER" | "FACULTY" | "JUDGE" | "MENTOR";
+  evaluatedAt?: string;
+  feedback?: string;
+  actionItems?: string[];
+  rubricScores?: RubricScore[];
+}
+
+export interface ProjectSubmissionFile {
+  id: string;
+  title: string;
+  fileName: string;
+  fileType: "PDF" | "PPTX" | "ZIP" | "XLSX" | "MP4";
+  size: string;
+  uploadedAt: string;
+  downloadUrl: string;
+}
+
+export interface ProjectResourceLink {
+  id: string;
+  title: string;
+  url: string;
+  category: "FIRMWARE" | "HARDWARE_PCB" | "CAD_DESIGN" | "AI_MODEL" | "LIVE_DASHBOARD" | "DOCUMENTATION";
+  description: string;
+}
+
+export interface LanguageStat {
+  name: string;
+  percentage: number;
+  color: string;
+}
+
 export interface Project {
   id: string;
   title: string;
@@ -308,7 +386,7 @@ export interface Project {
   lifecycle: ProjectLifecycle;
   leadName: string;
   leadId: string;
-  members: { name: string; role: string; avatarUrl?: string }[];
+  members: ProjectMember[];
   facultyMentor: string;
   techStack: string[];
   progressPercent: number;
@@ -318,6 +396,18 @@ export interface Project {
   featured: boolean;
   category: "HealthTech" | "Robotics" | "AgriTech" | "Smart Cities" | "Industrial IoT" | "Security";
   architectureSummary: string;
+  theme?: string;
+  brief?: string;
+  aiToolDisclosure?: string;
+  isLocked?: boolean;
+  defaultBranch?: string;
+  totalCommits?: number;
+  openIssues?: number;
+  sourceAuditStatus?: "Verified ✓" | "In Review" | "Pending Audit";
+  languageBreakdown?: LanguageStat[];
+  reviews?: ProjectReviewRound[];
+  submissionFiles?: ProjectSubmissionFile[];
+  resourceLinks?: ProjectResourceLink[];
 }
 
 export interface TeamRecruitmentPost {

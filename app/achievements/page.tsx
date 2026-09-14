@@ -37,27 +37,27 @@ export default function AchievementsPage() {
   ];
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 text-slate-800">
       <div className="text-center max-w-xl mx-auto space-y-2">
-        <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mx-auto mb-2">
+        <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 mx-auto mb-2 shadow-xs">
           <Trophy className="w-6 h-6" />
         </div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-white">Achievements & Wall of Fame</h1>
-        <p className="text-xs text-slate-400">
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">Achievements & Wall of Fame</h1>
+        <p className="text-xs text-slate-600">
           National hackathon podium finishes, technical conference papers, and student engineering distinctions.
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {achievements.map((item, idx) => (
-          <div key={idx} className="p-6 rounded-2xl bg-dark-card border border-dark-border space-y-3">
+          <div key={idx} className="glass-card p-6 rounded-3xl space-y-3">
             <div className="flex items-center justify-between text-xs font-mono">
-              <span className="text-iot-cyan">{item.category}</span>
-              <span className="text-amber-400 font-bold">{item.year}</span>
+              <span className="text-emerald-700 font-bold uppercase">{item.category}</span>
+              <span className="px-2.5 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700 font-bold text-[11px]">{item.year}</span>
             </div>
-            <h3 className="text-lg font-bold text-white">{item.title}</h3>
-            <p className="text-xs text-slate-400 font-mono">Team: {item.team}</p>
-            <p className="text-xs text-slate-300 leading-relaxed">{item.desc}</p>
+            <h3 className="text-lg font-bold text-slate-900">{item.title}</h3>
+            <p className="text-xs text-slate-500 font-mono">Team: {item.team}</p>
+            <p className="text-xs text-slate-600 leading-relaxed">{item.desc}</p>
           </div>
         ))}
       </div>

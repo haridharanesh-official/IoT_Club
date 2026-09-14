@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { IoTAppProvider } from "@/lib/store";
-import { RoleSwitcher } from "@/components/layout/RoleSwitcher";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 
 export const metadata: Metadata = {
-  title: "IoT Club — Learning, Innovation & Lab Management Platform",
-  description: "A digital operating system for the IoT Club: Discover, Learn, Build Projects, Use Lab Hardware, Compete in Hackathons, and Become a Mentor.",
+  title: "Internet of Things Club — Sri Shakthi Institute of Engineering and Technology",
+  description:
+    "A student-driven technical community focused on transforming ideas into intelligent, connected systems through IoT, Embedded Systems, Sensors, Microcontrollers, Wireless Communication, Robotics, Automation, Cloud Computing and Edge Computing.",
 };
 
 export default function RootLayout({
@@ -16,10 +16,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className="min-h-screen bg-dark-bg text-slate-100 flex flex-col antialiased selection:bg-iot-emerald selection:text-slate-950">
+    <html lang="en">
+      <body className="min-h-screen bg-[#f4f6f8] text-slate-800 flex flex-col antialiased selection:bg-emerald-200 selection:text-emerald-900">
         <IoTAppProvider>
-          <RoleSwitcher />
           <Navbar />
           <main className="flex-1 w-full">{children}</main>
           <Footer />

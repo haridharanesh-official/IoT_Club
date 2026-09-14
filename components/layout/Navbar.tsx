@@ -25,54 +25,59 @@ import {
 
 export const Navbar: React.FC = () => {
   const pathname = usePathname();
-  const { demoRole, student } = useIoTApp();
+  const { currentUser, isAuthenticated, logout, student } = useIoTApp();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
 
-  // Dynamic Navigation Items based on the active role / experience
+  // Dynamic Navigation Items based on verified authentication & role
   const getNavLinks = () => {
-    switch (demoRole) {
-      case "public":
-        return [
-          { label: "Home", href: "/" },
-          { label: "About", href: "/about" },
-          { label: "Projects", href: "/projects" },
-          { label: "Events & Workshops", href: "/events" },
-          { label: "Achievements", href: "/achievements" },
-          { label: "Apply to Join", href: "/apply", highlight: true },
-        ];
-      case "applicant":
-        return [
-          { label: "Recruitment Status", href: "/apply" },
-          { label: "Learning Syllabus", href: "/learn" },
-          { label: "Showcase Projects", href: "/projects" },
-          { label: "Workshops", href: "/events" },
-        ];
-      case "teacher":
+    if (!isAuthenticated || !currentUser) {
+      return [
+        { label: "Home", href: "/" },
+        { label: "About", href: "/#about" },
+        { label: "Roadmap", href: "/#roadmap" },
+        { label: "Projects", href: "/projects" },
+        { label: "Learning Tracks", href: "/learn" },
+        { label: "IPDC Cell", href: "/opportunities" },
+        { label: "Apply to Join", href: "/apply", highlight: true },
+      ];
+    }
+
+    switch (currentUser.role) {
+      case "TEACHER":
         return [
           { label: "Evaluations", href: "/teacher" },
+          { label: "Projects Review", href: "/projects" },
           { label: "Hardware Approvals", href: "/teacher/hardware" },
           { label: "Batch Analytics", href: "/teacher/analytics" },
-          { label: "Workshops & QR", href: "/events" },
-          { label: "Projects Review", href: "/projects" },
+          { label: "Workshops", href: "/events" },
         ];
-      case "admin":
+      case "CLUB_LEAD":
+        return [
+          { label: "Project Workspace", href: "/projects" },
+          { label: "Student Dashboard", href: "/dashboard" },
+          { label: "Teams & Recruitment", href: "/projects/teams" },
+          { label: "Live Lab Telemetry", href: "/lab/live" },
+          { label: "Challenges", href: "/challenges" },
+        ];
+      case "ADMIN":
         return [
           { label: "Admin Console", href: "/admin" },
+          { label: "Projects Governance", href: "/projects" },
           { label: "Recruitment Kanban", href: "/admin/recruitment" },
           { label: "Hardware Inventory", href: "/lab/inventory" },
           { label: "Live Lab Telemetry", href: "/lab/live" },
           { label: "Audit Logs", href: "/admin/audit" },
         ];
-      case "student":
+      case "STUDENT":
       default:
         return [
           { label: "Dashboard", href: "/dashboard" },
           { label: "Learn", href: "/learn" },
           { label: "Skill Tree", href: "/learn/skills" },
           { label: "Projects", href: "/projects" },
-          { label: "Lab & Hardware", href: "/lab" },
-          { label: "Hackathons", href: "/opportunities" },
+          { label: "IoT Lab", href: "/lab" },
+          { label: "Competitions", href: "/opportunities" },
           { label: "Profile", href: `/member/${student.username}` },
         ];
     }
@@ -82,38 +87,42 @@ export const Navbar: React.FC = () => {
 
   return (
     <>
-      <header className="w-full bg-dark-surface/90 border-b border-dark-border sticky top-8 z-40 backdrop-blur-md">
+      <header className="w-full bg-white/85 border-b border-slate-200/80 sticky top-0 z-40 backdrop-blur-xl shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           {/* Brand Logo */}
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-iot-emerald to-iot-cyan flex items-center justify-center text-slate-950 shadow-md group-hover:scale-105 transition">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center text-white shadow-sm shadow-emerald-500/30 group-hover:scale-105 transition">
               <Cpu className="w-5 h-5 font-bold" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="font-bold text-white text-base tracking-tight">{defaultClubConfig.clubName}</span>
-                <span className="text-[10px] px-1.5 py-0.2 rounded bg-iot-emerald/10 text-emerald-400 border border-iot-emerald/30 font-mono">
-                  v2.6 OS
+                <span className="font-bold text-slate-900 text-base tracking-tight">
+                  {defaultClubConfig.clubName}
+                </span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-mono">
+                  IoT Club
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 tracking-wide font-medium">{defaultClubConfig.subtitle}</p>
+              <p className="text-[11px] text-emerald-600 tracking-wide font-medium hidden sm:block">
+                {defaultClubConfig.collegeName}
+              </p>
             </div>
           </Link>
 
           {/* Desktop Nav Links */}
-          <nav className="hidden md:flex items-center gap-1.5">
+          <nav className="hidden md:flex items-center gap-1">
             {navLinks.map((link) => {
               const isActive = pathname === link.href;
               return (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-medium transition ${
                     link.highlight
-                      ? "bg-iot-emerald hover:bg-emerald-400 text-slate-950 font-semibold shadow-sm"
+                      ? "bg-emerald-500 hover:bg-emerald-600 text-white font-semibold shadow-xs shadow-emerald-500/30"
                       : isActive
-                      ? "bg-slate-800 text-white border border-slate-700"
-                      : "text-slate-300 hover:text-white hover:bg-slate-800/60"
+                      ? "bg-emerald-50 text-emerald-800 border border-emerald-200/70 font-semibold"
+                      : "text-slate-600 hover:text-slate-950 hover:bg-slate-100/80"
                   }`}
                 >
                   {link.label}
@@ -122,31 +131,68 @@ export const Navbar: React.FC = () => {
             })}
           </nav>
 
-          {/* Right Action Icons: Certificate Verify + AI Mentor */}
-          <div className="hidden lg:flex items-center gap-2">
+          {/* Right Action Icons */}
+          <div className="hidden lg:flex items-center gap-2.5">
             <Link
               href="/verify"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-dark-border text-slate-300 hover:text-white hover:bg-slate-800 text-xs transition"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 hover:text-emerald-700 hover:bg-emerald-50/70 text-xs transition"
               title="Verify Certificate Authenticity"
             >
-              <FileCheck2 className="w-3.5 h-3.5 text-iot-cyan" />
+              <FileCheck2 className="w-3.5 h-3.5 text-emerald-600" />
               <span>Verify Cert</span>
             </Link>
 
             <button
               onClick={() => setIsAiModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-violet-600/30 to-cyan-600/30 border border-violet-500/40 text-violet-200 hover:border-cyan-400 text-xs font-medium transition shadow-sm"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100/70 text-xs font-medium transition shadow-xs cursor-pointer"
             >
-              <Bot className="w-3.5 h-3.5 text-iot-cyan" />
+              <Bot className="w-3.5 h-3.5 text-emerald-600" />
               <span>AI Mentor</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-iot-cyan animate-pulse" />
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
             </button>
+
+            {/* User Session or Sign In */}
+            {isAuthenticated && currentUser ? (
+              <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
+                <Link
+                  href={currentUser.portalRedirect}
+                  className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-slate-50 border border-slate-200 hover:bg-slate-100 transition text-xs"
+                >
+                  <div className="w-6 h-6 rounded-lg bg-emerald-500 text-white font-bold text-[10px] flex items-center justify-center">
+                    {currentUser.name.slice(0, 2).toUpperCase()}
+                  </div>
+                  <div className="text-left">
+                    <span className="font-bold text-slate-900 block leading-tight truncate max-w-[110px]">
+                      {currentUser.name.split(" ")[0]}
+                    </span>
+                    <span className="text-[9px] font-mono text-emerald-700 font-bold block">
+                      {currentUser.role}
+                    </span>
+                  </div>
+                </Link>
+
+                <button
+                  onClick={logout}
+                  className="px-2.5 py-1.5 rounded-xl text-rose-600 hover:bg-rose-50 text-xs font-semibold transition cursor-pointer"
+                  title="Sign Out"
+                >
+                  Sign Out
+                </button>
+              </div>
+            ) : (
+              <Link
+                href="/login"
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs transition"
+              >
+                <span>College Sign In</span>
+              </Link>
+            )}
           </div>
 
           {/* Mobile Menu Toggle */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+            className="md:hidden p-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 cursor-pointer"
             aria-label="Toggle navigation menu"
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -155,34 +201,43 @@ export const Navbar: React.FC = () => {
 
         {/* Mobile Nav Dropdown */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-dark-border bg-dark-surface p-4 space-y-2">
+          <div className="md:hidden border-t border-slate-200 bg-white/95 backdrop-blur-xl p-4 space-y-2 text-xs">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 onClick={() => setMobileMenuOpen(false)}
-                className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-200 hover:bg-slate-800"
+                className="block px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 font-medium"
               >
                 {link.label}
               </Link>
             ))}
-            <div className="pt-2 border-t border-dark-border flex flex-col gap-2">
-              <Link
-                href="/verify"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800/80 text-xs text-slate-200"
-              >
-                <FileCheck2 className="w-4 h-4 text-iot-cyan" /> Verify Certificate
-              </Link>
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  setIsAiModalOpen(true);
-                }}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-violet-950/50 border border-violet-800 text-xs text-violet-300"
-              >
-                <Bot className="w-4 h-4 text-iot-cyan" /> Ask AI IoT Mentor
-              </button>
+
+            <div className="pt-2 border-t border-slate-100">
+              {isAuthenticated && currentUser ? (
+                <div className="flex items-center justify-between pt-1">
+                  <span className="font-bold text-slate-800">
+                    {currentUser.name} ({currentUser.role})
+                  </span>
+                  <button
+                    onClick={() => {
+                      logout();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="text-rose-600 font-bold"
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              ) : (
+                <Link
+                  href="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block w-full text-center py-2 rounded-xl bg-emerald-500 text-white font-bold"
+                >
+                  College Sign In
+                </Link>
+              )}
             </div>
           </div>
         )}

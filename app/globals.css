@@ -3,75 +3,82 @@
 @tailwind utilities;
 
 :root {
-  --bg-primary: #0b0f19;
-  --bg-surface: #111827;
-  --bg-card: #151e31;
-  --border-color: #1f2d45;
+  --bg-primary: #f4f6f8;
+  --bg-surface: #ffffff;
+  --bg-card: rgba(255, 255, 255, 0.85);
+  --border-color: rgba(226, 232, 240, 0.8);
 }
 
 body {
   background-color: var(--bg-primary);
-  color: #f1f5f9;
+  color: #1e293b;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   overflow-x: hidden;
 }
 
-/* Custom Scrollbar */
+/* Custom Soft Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0b0f19;
+  background: #f1f5f9;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1f2d45;
+  background: #cbd5e1;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #94a3b8;
 }
 
-/* Subtle circuit grid pattern */
+/* Friendly Soft Dot Grid Pattern */
 .bg-circuit-grid {
-  background-image: radial-gradient(rgba(16, 185, 129, 0.08) 1px, transparent 1px),
-    radial-gradient(rgba(6, 182, 212, 0.05) 1px, transparent 1px);
-  background-size: 32px 32px;
-  background-position: 0 0, 16px 16px;
+  background-image: radial-gradient(rgba(16, 185, 129, 0.12) 1.2px, transparent 1.2px);
+  background-size: 28px 28px;
+  background-position: 0 0;
 }
 
-/* Glassmorphic Cards */
-.glass-panel {
-  background: rgba(17, 24, 39, 0.85);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(31, 45, 69, 0.8);
+/* Glassmorphism Styles */
+.glass-card {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(226, 232, 240, 0.6);
 }
 
-.glass-panel:hover {
-  border-color: rgba(56, 189, 248, 0.4);
+.glass-card:hover {
+  border-color: rgba(16, 185, 129, 0.4);
+  box-shadow: 0 14px 35px -5px rgba(16, 185, 129, 0.08), 0 0 0 1px rgba(16, 185, 129, 0.3);
 }
 
-/* Glowing Accent Borders */
-.glow-emerald {
-  box-shadow: 0 0 20px -5px rgba(16, 185, 129, 0.3);
+/* Pastel Tinted Glass Cards (matching reference image) */
+.glass-card-mint {
+  background: linear-gradient(135deg, rgba(220, 252, 231, 0.75) 0%, rgba(240, 253, 244, 0.85) 100%);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(167, 243, 208, 0.8);
+  box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.08);
 }
 
-.glow-cyan {
-  box-shadow: 0 0 20px -5px rgba(6, 182, 212, 0.3);
+.glass-card-peach {
+  background: linear-gradient(135deg, rgba(254, 243, 199, 0.7) 0%, rgba(255, 251, 235, 0.85) 100%);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(253, 230, 138, 0.8);
+  box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.06);
 }
 
-.glow-violet {
-  box-shadow: 0 0 20px -5px rgba(139, 92, 246, 0.3);
+.glass-card-lavender {
+  background: linear-gradient(135deg, rgba(237, 233, 254, 0.7) 0%, rgba(245, 243, 255, 0.85) 100%);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(221, 214, 254, 0.8);
+  box-shadow: 0 10px 25px -5px rgba(139, 92, 246, 0.06);
 }
 
-/* Code block highlight styling */
-pre {
-  background: #0f172a !important;
-  border: 1px solid #1e293b;
-  border-radius: 0.5rem;
-  padding: 1rem;
-  overflow-x: auto;
+/* Soft Green Glowing Shadows */
+.glow-mint {
+  box-shadow: 0 8px 25px -4px rgba(16, 185, 129, 0.25);
 }

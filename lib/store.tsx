@@ -15,6 +15,7 @@ import {
   LabBooking,
   Project,
   ProjectTask,
+  ProjectReviewRound,
   TeamRecruitmentPost,
   MonthlyChallenge,
   ClubEvent,
@@ -24,6 +25,9 @@ import {
   AuditLogItem,
   AppNotification,
   AssignmentSubmission,
+  AuthUser,
+  AuthRole,
+  AuthSession,
 } from "./types";
 import {
   initialDemoStudent,
@@ -40,23 +44,95 @@ import {
   initialHackathons,
   initialCertificates,
   initialMonthlyChallenges,
-  initialTeamRecruitments,
   initialTelemetry,
   initialAuditLogs,
+  initialTeamRecruitments,
   initialNotifications,
 } from "./mockData";
 
+export interface StoredUserCredential {
+  user: AuthUser;
+  passwordHash: string;
+}
+
+export const initialAuthUsers: StoredUserCredential[] = [
+  {
+    user: {
+      id: "usr-std-001",
+      name: "Hari Dharanesh S P",
+      email: "hari.23ec@siet.ac.in",
+      role: "STUDENT",
+      department: "Information Technology & Embedded Systems",
+      rollNumber: "727723EUIT045",
+      designation: "Student Member (Level 4 Builder)",
+      portalRedirect: "/dashboard",
+    },
+    passwordHash: "student123",
+  },
+  {
+    user: {
+      id: "usr-fac-001",
+      name: "Dr. K. Swaminathan",
+      email: "swaminathan.faculty@siet.ac.in",
+      role: "TEACHER",
+      department: "Electronics & Communication Engineering",
+      designation: "Faculty Coordinator & Evaluator",
+      portalRedirect: "/teacher",
+    },
+    passwordHash: "faculty123",
+  },
+  {
+    user: {
+      id: "usr-lead-001",
+      name: "Hari Dharanesh S P (Official Lead)",
+      email: "lead.iotclub@siet.ac.in",
+      role: "CLUB_LEAD",
+      department: "IoT Technical Innovation Council",
+      designation: "Club Technical Lead & Project Lead",
+      portalRedirect: "/projects",
+    },
+    passwordHash: "clublead123",
+  },
+  {
+    user: {
+      id: "usr-adm-001",
+      name: "Prof. R. Soundararajan",
+      email: "admin.iot@siet.ac.in",
+      role: "ADMIN",
+      department: "Center for Innovation, Research & Lab Governance",
+      designation: "Super Administrator & Lab In-charge",
+      portalRedirect: "/admin",
+    },
+    passwordHash: "admin123",
+  },
+];
+
 interface IoTAppContextType {
+  currentUser: AuthUser | null;
+  isAuthenticated: boolean;
+  loginWithCollegeEmail: (
+    email: string,
+    password: string
+  ) => { success: boolean; error?: string; redirectUrl?: string; user?: AuthUser };
+  registerStudent: (data: {
+    email: string;
+    password: string;
+    name: string;
+    rollNumber: string;
+    department: string;
+  }) => { success: boolean; error?: string; redirectUrl?: string };
+  logout: () => void;
   demoRole: DemoRole;
   setDemoRole: (role: DemoRole) => void;
   student: UserProfile;
+  updateStudentProfile: (updates: Partial<UserProfile>) => void;
   applications: Application[];
   submitApplication: (appData: Omit<Application, "id" | "appliedDate" | "status" | "batch">) => string;
   updateApplicationStatus: (appId: string, status: ApplicationStatus, notes?: string) => void;
   tracks: LearningTrack[];
-  submitAssignment: (moduleId: string, submission: { githubRepo: string; demoUrl: string; documentationText: string }) => void;
+  submitAssignment: (moduleId: string, data: { githubRepo: string; demoUrl: string; documentationText: string }) => void;
   evaluateSubmission: (
-    assignmentId: string,
+    submissionId: string,
     studentId: string,
     scores: { [criteria: string]: number },
     feedback: string,
@@ -66,8 +142,12 @@ interface IoTAppContextType {
   skills: SkillNode[];
   xpTransactions: XPTransaction[];
   projects: Project[];
+  addNewProject: (project: Omit<Project, "id">) => Project;
   addProjectTask: (projectId: string, task: Omit<ProjectTask, "id" | "projectId">) => void;
   updateTaskStatus: (projectId: string, taskId: string, status: ProjectTask["status"]) => void;
+  addOrUpdateProjectReview: (projectId: string, review: ProjectReviewRound) => void;
+  toggleProjectLock: (projectId: string) => void;
+  testGitHubRepo: (projectId: string) => void;
   teamRecruitments: TeamRecruitmentPost[];
   applyToTeam: (postId: string, studentName: string, role: string) => void;
   hardwareAssets: HardwareAsset[];
@@ -97,9 +177,155 @@ interface IoTAppContextType {
 const IoTAppContext = createContext<IoTAppContextType | undefined>(undefined);
 
 export function IoTAppProvider({ children }: { children: React.ReactNode }) {
-  const [demoRole, setDemoRoleState] = useState<DemoRole>("student");
+  const [authUsers, setAuthUsers] = useState<StoredUserCredential[]>(initialAuthUsers);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [demoRole, setDemoRoleState] = useState<DemoRole>("public");
   const [student, setStudent] = useState<UserProfile>(initialDemoStudent);
   const [applications, setApplications] = useState<Application[]>(initialApplications);
+
+  // Initialize session from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("iot_auth_user");
+        if (saved) {
+          const parsed = JSON.parse(saved) as AuthUser;
+          setCurrentUser(parsed);
+          if (parsed.role === "STUDENT") setDemoRoleState("student");
+          else if (parsed.role === "TEACHER") setDemoRoleState("teacher");
+          else if (parsed.role === "ADMIN") setDemoRoleState("admin");
+          else if (parsed.role === "CLUB_LEAD") setDemoRoleState("student");
+        } else {
+          setDemoRoleState("public");
+        }
+      } catch (err) {
+        console.error("Auth session load error:", err);
+      }
+    }
+  }, []);
+
+  // Login with College Email
+  const loginWithCollegeEmail = useCallback(
+    (email: string, password: string) => {
+      const cleanEmail = email.trim().toLowerCase();
+      const matched = authUsers.find(
+        (u) => u.user.email.toLowerCase() === cleanEmail && u.passwordHash === password
+      );
+
+      if (!matched) {
+        return {
+          success: false,
+          error: "Invalid College Email ID or password. Please verify your credentials.",
+        };
+      }
+
+      setCurrentUser(matched.user);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("iot_auth_user", JSON.stringify(matched.user));
+      }
+
+      // Sync role
+      if (matched.user.role === "STUDENT") setDemoRoleState("student");
+      else if (matched.user.role === "TEACHER") setDemoRoleState("teacher");
+      else if (matched.user.role === "ADMIN") setDemoRoleState("admin");
+      else if (matched.user.role === "CLUB_LEAD") setDemoRoleState("student");
+
+      const logItem: AuditLogItem = {
+        id: `log-${Date.now()}`,
+        user: matched.user.name,
+        action: "USER_AUTHENTICATED",
+        entity: "AuthSession",
+        entityId: matched.user.id,
+        timestamp: new Date().toLocaleString(),
+        details: `Signed in as ${matched.user.role} (${matched.user.email})`,
+      };
+      setAuditLogs((prev) => [logItem, ...prev]);
+
+      return {
+        success: true,
+        redirectUrl: matched.user.portalRedirect,
+        user: matched.user,
+      };
+    },
+    [authUsers]
+  );
+
+  // Register Student with College Email
+  const registerStudent = useCallback(
+    (data: {
+      email: string;
+      password: string;
+      name: string;
+      rollNumber: string;
+      department: string;
+    }) => {
+      const cleanEmail = data.email.trim().toLowerCase();
+      if (!cleanEmail.includes("@") || (!cleanEmail.endsWith(".siet.ac.in") && !cleanEmail.endsWith("@siet.ac.in"))) {
+        return {
+          success: false,
+          error: "Please use your official Sri Shakthi Institute of Engineering and Technology email (@siet.ac.in).",
+        };
+      }
+
+      const existing = authUsers.find((u) => u.user.email.toLowerCase() === cleanEmail);
+      if (existing) {
+        return {
+          success: false,
+          error: "An account with this college email already exists. Please sign in.",
+        };
+      }
+
+      const newAuthUser: AuthUser = {
+        id: `usr-std-${Date.now().toString(36)}`,
+        name: data.name.trim(),
+        email: cleanEmail,
+        role: "STUDENT",
+        department: data.department.trim() || "Information Technology",
+        rollNumber: data.rollNumber.trim(),
+        designation: "Student Member (Level 1 Novice)",
+        portalRedirect: "/dashboard",
+      };
+
+      const newCredential: StoredUserCredential = {
+        user: newAuthUser,
+        passwordHash: data.password,
+      };
+
+      setAuthUsers((prev) => [...prev, newCredential]);
+      setCurrentUser(newAuthUser);
+      setDemoRoleState("student");
+
+      if (typeof window !== "undefined") {
+        localStorage.setItem("iot_auth_user", JSON.stringify(newAuthUser));
+      }
+
+      const logItem: AuditLogItem = {
+        id: `log-${Date.now()}`,
+        user: newAuthUser.name,
+        action: "STUDENT_REGISTERED",
+        entity: "AuthUser",
+        entityId: newAuthUser.id,
+        timestamp: new Date().toLocaleString(),
+        details: `Registered new student account with college email ${newAuthUser.email}`,
+      };
+      setAuditLogs((prev) => [logItem, ...prev]);
+
+      return {
+        success: true,
+        redirectUrl: "/dashboard",
+      };
+    },
+    [authUsers]
+  );
+
+  // Logout
+  const logout = useCallback(() => {
+    setCurrentUser(null);
+    setDemoRoleState("public");
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("iot_auth_user");
+    }
+  }, []);
   const [tracks, setTracks] = useState<LearningTrack[]>(initialLearningTracks);
   const [skills, setSkills] = useState<SkillNode[]>(initialSkillNodes);
   const [xpTransactions, setXpTransactions] = useState<XPTransaction[]>(initialXPTransactions);
@@ -188,6 +414,11 @@ export function IoTAppProvider({ children }: { children: React.ReactNode }) {
       xp: totalXP,
     }));
   }, [xpTransactions, student.id]);
+
+  // Update Student Profile
+  const updateStudentProfile = useCallback((updates: Partial<UserProfile>) => {
+    setStudent((prev) => ({ ...prev, ...updates }));
+  }, []);
 
   // Submit Application Action
   const submitApplication = useCallback(
@@ -358,6 +589,145 @@ export function IoTAppProvider({ children }: { children: React.ReactNode }) {
           };
         }
         return p;
+      })
+    );
+  }, []);
+
+  // Add New Project
+  const addNewProject = useCallback(
+    (projectData: Omit<Project, "id">) => {
+      const newId = `prj-${Date.now().toString(36)}`;
+      const newProject: Project = {
+        ...projectData,
+        id: newId,
+        tasks: projectData.tasks || [],
+        reviews: projectData.reviews || [
+          {
+            id: `rev-r1-${Date.now()}`,
+            roundKey: "R1",
+            roundTitle: "R1 First Review (Round 1) Evaluation",
+            status: "PENDING",
+            feedback: "First Review has not been conducted yet. Feedback and action items will be updated here live once evaluated.",
+            actionItems: [],
+            rubricScores: [
+              { criterion: "Problem Statement & Theme Relevance", score: 0, maxScore: 10 },
+              { criterion: "Hardware BOM & Circuit Feasibility", score: 0, maxScore: 10 },
+              { criterion: "Git Workflow & Commit Attribution", score: 0, maxScore: 10 },
+              { criterion: "System Architecture & Documentation", score: 0, maxScore: 10 },
+            ],
+          },
+          {
+            id: `rev-r2-${Date.now()}`,
+            roundKey: "R2",
+            roundTitle: "R2 Mid-Stage / Prototype Evaluation",
+            status: "PENDING",
+            feedback: "Mid-stage prototype demonstration scheduled following Round 1 sign-off.",
+            actionItems: [],
+          },
+          {
+            id: `rev-final-${Date.now()}`,
+            roundKey: "FINAL",
+            roundTitle: "Final Evaluations",
+            status: "PENDING",
+            feedback: "Final evaluation rubric opens during Demo Day judging.",
+            actionItems: [],
+          },
+        ],
+        submissionFiles: projectData.submissionFiles || [],
+        resourceLinks: projectData.resourceLinks || [],
+        defaultBranch: projectData.defaultBranch || "main",
+        totalCommits: projectData.totalCommits || 1,
+        openIssues: projectData.openIssues || 0,
+        sourceAuditStatus: projectData.sourceAuditStatus || "Verified ✓",
+        languageBreakdown: projectData.languageBreakdown || [
+          { name: "C++", percentage: 65, color: "#ec4899" },
+          { name: "Python", percentage: 35, color: "#3b82f6" },
+        ],
+      };
+
+      setProjects((prev) => [newProject, ...prev]);
+
+      const logItem: AuditLogItem = {
+        id: `log-${Date.now()}`,
+        user: student.name,
+        action: "PROJECT_REGISTERED",
+        entity: "Project",
+        entityId: newId,
+        timestamp: new Date().toLocaleString(),
+        details: `Submitted new project "${newProject.title}" under ${newProject.category}.`,
+      };
+      setAuditLogs((prev) => [logItem, ...prev]);
+
+      const notif: AppNotification = {
+        id: `notif-${Date.now()}`,
+        title: "Project Added to Portal",
+        message: `Your project "${newProject.title}" has been registered and is pending R1 evaluation.`,
+        type: "SYSTEM",
+        timestamp: "Just now",
+        read: false,
+      };
+      setNotifications((prev) => [notif, ...prev]);
+
+      return newProject;
+    },
+    [student.name]
+  );
+
+  // Add or Update Project Review
+  const addOrUpdateProjectReview = useCallback((projectId: string, review: ProjectReviewRound) => {
+    setProjects((prev) =>
+      prev.map((p) => {
+        if (p.id !== projectId) return p;
+        const currentReviews = p.reviews ? [...p.reviews] : [];
+        const idx = currentReviews.findIndex((r) => r.roundKey === review.roundKey);
+        if (idx >= 0) {
+          currentReviews[idx] = { ...currentReviews[idx], ...review };
+        } else {
+          currentReviews.push(review);
+        }
+        return { ...p, reviews: currentReviews };
+      })
+    );
+
+    const logItem: AuditLogItem = {
+      id: `log-${Date.now()}`,
+      user: review.reviewerName || "Faculty Evaluator",
+      action: "PROJECT_REVIEWED",
+      entity: "ProjectReview",
+      entityId: projectId,
+      timestamp: new Date().toLocaleString(),
+      details: `${review.roundTitle}: Status updated to ${review.status}. Score: ${review.score || 0}/${review.maxScore || 10}`,
+    };
+    setAuditLogs((prev) => [logItem, ...prev]);
+
+    const notif: AppNotification = {
+      id: `notif-${Date.now()}`,
+      title: `Review Published: ${review.roundTitle}`,
+      message: `Evaluation submitted with status: ${review.status}. Feedback and action items have been updated.`,
+      type: "LEARNING",
+      timestamp: "Just now",
+      read: false,
+    };
+    setNotifications((prev) => [notif, ...prev]);
+  }, []);
+
+  // Toggle Project Lock
+  const toggleProjectLock = useCallback((projectId: string) => {
+    setProjects((prev) =>
+      prev.map((p) => (p.id === projectId ? { ...p, isLocked: !p.isLocked } : p))
+    );
+  }, []);
+
+  // Test / Re-sync GitHub Repository
+  const testGitHubRepo = useCallback((projectId: string) => {
+    setProjects((prev) =>
+      prev.map((p) => {
+        if (p.id !== projectId) return p;
+        return {
+          ...p,
+          sourceAuditStatus: "Verified ✓",
+          totalCommits: (p.totalCommits || 54) + 1,
+        };
       })
     );
   }, []);
@@ -625,9 +995,15 @@ export function IoTAppProvider({ children }: { children: React.ReactNode }) {
   return (
     <IoTAppContext.Provider
       value={{
+        currentUser,
+        isAuthenticated: !!currentUser,
+        loginWithCollegeEmail,
+        registerStudent,
+        logout,
         demoRole,
         setDemoRole,
         student,
+        updateStudentProfile,
         applications,
         submitApplication,
         updateApplicationStatus,
@@ -638,8 +1014,12 @@ export function IoTAppProvider({ children }: { children: React.ReactNode }) {
         skills,
         xpTransactions,
         projects,
+        addNewProject,
         addProjectTask,
         updateTaskStatus,
+        addOrUpdateProjectReview,
+        toggleProjectLock,
+        testGitHubRepo,
         teamRecruitments,
         applyToTeam,
         hardwareAssets,
