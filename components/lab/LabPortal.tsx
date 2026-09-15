@@ -21,6 +21,10 @@ import {
   Search,
   ExternalLink,
   X,
+  Edit3,
+  Trash2,
+  ShieldCheck,
+  UserCheck,
 } from "lucide-react";
 
 export const LabPortal: React.FC = () => {
@@ -33,11 +37,46 @@ export const LabPortal: React.FC = () => {
     bookLabResource,
     student,
     telemetry,
+    currentUser,
+    addHardwareAsset,
+    updateHardwareAsset,
+    deleteHardwareAsset,
+    forceAssignHardware,
+    forceReturnHardware,
+    hardwareRequests,
+    approveHardwareRequest,
+    rejectHardwareRequest,
   } = useIoTApp();
 
   const [activeTab, setActiveTab] = useState<"inventory" | "booking" | "myhardware" | "live">("inventory");
   const [filterCategory, setFilterCategory] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Admin Control Mode State
+  const [adminControls, setAdminControls] = useState<boolean>(true);
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedAssetForEdit, setSelectedAssetForEdit] = useState<HardwareAsset | null>(null);
+  const [assetForm, setAssetForm] = useState<HardwareAsset>({
+    assetId: "",
+    name: "",
+    category: "Microcontroller",
+    model: "",
+    serialNumber: "",
+    location: "IoT Lab Shelf B1",
+    condition: "GOOD",
+    status: "AVAILABLE",
+    qrCodeValue: "",
+    specs: ["3.3V Logic", "Wi-Fi Ready"],
+  });
+
+  // Direct Assign Modal State
+  const [assignModalOpen, setAssignModalOpen] = useState(false);
+  const [assignAssetId, setAssignAssetId] = useState("");
+  const [assignStudentName, setAssignStudentName] = useState("Hari Dharanesh SP");
+  const [assignStudentId, setAssignStudentId] = useState("usr-std-001");
+  const [assignProject, setAssignProject] = useState("CareGrid");
+  const [assignDays, setAssignDays] = useState(14);
 
   // Borrow Modal State
   const [selectedAssetForRequest, setSelectedAssetForRequest] = useState<HardwareAsset | null>(null);
@@ -128,13 +167,28 @@ export const LabPortal: React.FC = () => {
           </p>
         </div>
 
-        <Link
-          href="/lab/live"
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-emerald-200 text-emerald-800 hover:bg-emerald-50 text-xs font-semibold shadow-xs transition"
-        >
-          <Radio className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
-          <span>Live Telemetry Stream ({telemetry.temperatureC}°C)</span>
-        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setAdminControls(!adminControls)}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition cursor-pointer ${
+              adminControls
+                ? "bg-emerald-50 text-emerald-800 border-emerald-300 shadow-xs"
+                : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+            }`}
+            title="Toggle full admin editing controls"
+          >
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Admin Controls: {adminControls ? "Active" : "Off"}</span>
+          </button>
+
+          <Link
+            href="/lab/live"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-emerald-200 text-emerald-800 hover:bg-emerald-50 text-xs font-semibold shadow-xs transition"
+          >
+            <Radio className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
+            <span>Live Telemetry Stream ({telemetry.temperatureC}°C)</span>
+          </Link>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -163,9 +217,73 @@ export const LabPortal: React.FC = () => {
       {/* TAB 1: HARDWARE INVENTORY */}
       {activeTab === "inventory" && (
         <div className="space-y-4">
-          {/* Filter and Search */}
+          {/* Pending Requests Alert if Admin */}
+          {adminControls && hardwareRequests.filter((r) => r.status === "PENDING").length > 0 && (
+            <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-amber-900 flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-amber-700 animate-pulse" />
+                  <span>Pending Hardware Checkout Requests ({hardwareRequests.filter((r) => r.status === "PENDING").length})</span>
+                </span>
+                <span className="text-[10px] text-amber-700 font-mono">Admin Authorization Required</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {hardwareRequests
+                  .filter((r) => r.status === "PENDING")
+                  .map((req) => (
+                    <div key={req.id} className="p-2.5 bg-white rounded-xl border border-amber-200 text-xs flex items-center justify-between gap-2 shadow-2xs">
+                      <div>
+                        <div className="font-bold text-slate-900">{req.studentName} — #{req.assetId}</div>
+                        <div className="text-[10px] text-slate-500">{req.project} • {req.durationDays}d</div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => approveHardwareRequest(req.id)}
+                          className="px-2 py-0.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] cursor-pointer"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => rejectHardwareRequest(req.id)}
+                          className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-rose-50 text-rose-700 font-bold text-[10px] cursor-pointer"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {/* Filter, Search, and Add Equipment */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
             <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto pb-1 text-xs">
+              {adminControls && (
+                <button
+                  onClick={() => {
+                    const nextId = `HW-${Math.floor(100 + Math.random() * 900)}`;
+                    setAssetForm({
+                      assetId: nextId,
+                      name: "",
+                      category: "Microcontroller",
+                      model: "",
+                      serialNumber: `SN-${Date.now().toString().slice(-6)}`,
+                      location: "IoT Lab Shelf B1",
+                      condition: "EXCELLENT",
+                      status: "AVAILABLE",
+                      qrCodeValue: `IOT-ASSET-${nextId}`,
+                      specs: ["High Performance", "Embedded Ready"],
+                    });
+                    setAddModalOpen(true);
+                  }}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-xs transition shrink-0 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Equipment</span>
+                </button>
+              )}
+
               {["ALL", "Microcontroller", "Single Board Computer", "Sensor", "Wireless & RF", "Testing Equipment", "Tooling"].map((cat) => (
                 <button
                   key={cat}
@@ -237,7 +355,7 @@ export const LabPortal: React.FC = () => {
                         )}
                       </td>
                       <td className="p-3.5 text-right">
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => setQrModalAsset(asset)}
                             className="p-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 hover:text-slate-900"
@@ -246,19 +364,69 @@ export const LabPortal: React.FC = () => {
                             <QrCode className="w-3.5 h-3.5" />
                           </button>
 
+                          {adminControls && (
+                            <>
+                              <button
+                                onClick={() => {
+                                  setSelectedAssetForEdit(asset);
+                                  setAssetForm({ ...asset });
+                                  setEditModalOpen(true);
+                                }}
+                                className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
+                                title="Edit Asset"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                              </button>
+
+                              <button
+                                onClick={() => {
+                                  if (confirm(`Remove asset #${asset.assetId} (${asset.name}) from inventory?`)) {
+                                    deleteHardwareAsset(asset.assetId);
+                                  }
+                                }}
+                                className="p-1.5 rounded-lg bg-slate-100 hover:bg-rose-100 text-rose-700 transition cursor-pointer"
+                                title="Delete Asset"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </>
+                          )}
+
                           {asset.status === "AVAILABLE" ? (
-                            <button
-                              onClick={() => setSelectedAssetForRequest(asset)}
-                              className="px-3 py-1 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-[11px] shadow-xs transition"
-                            >
-                              Borrow
-                            </button>
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => setSelectedAssetForRequest(asset)}
+                                className="px-3 py-1 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-[11px] shadow-xs transition"
+                              >
+                                Borrow
+                              </button>
+                              {adminControls && (
+                                <button
+                                  onClick={() => {
+                                    setAssignAssetId(asset.assetId);
+                                    setAssignModalOpen(true);
+                                  }}
+                                  className="px-2 py-1 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold text-[11px] transition cursor-pointer"
+                                  title="Directly assign to student"
+                                >
+                                  Assign
+                                </button>
+                              )}
+                            </div>
                           ) : asset.currentHolderId === student.id ? (
                             <button
                               onClick={() => returnHardware(asset.assetId)}
                               className="px-3 py-1 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 font-bold text-[11px] transition"
                             >
                               Return
+                            </button>
+                          ) : adminControls ? (
+                            <button
+                              onClick={() => forceReturnHardware(asset.assetId)}
+                              className="px-2.5 py-1 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 font-bold text-[11px] transition cursor-pointer"
+                              title="Force Return / Check-in"
+                            >
+                              Force Return
                             </button>
                           ) : (
                             <span className="text-[11px] text-slate-400 italic">In Use</span>
@@ -586,6 +754,309 @@ export const LabPortal: React.FC = () => {
             >
               Close QR View
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Modal: Add Hardware Asset */}
+      {addModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-white border border-slate-200 p-6 rounded-3xl max-w-lg w-full space-y-4 text-xs shadow-2xl my-8">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+              <h3 className="font-bold text-slate-900 text-base">Add New Hardware Asset</h3>
+              <button onClick={() => setAddModalOpen(false)} className="p-1 text-slate-400 hover:text-slate-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!assetForm.name || !assetForm.assetId) return;
+                addHardwareAsset(assetForm);
+                setAddModalOpen(false);
+              }}
+              className="space-y-3"
+            >
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-medium text-slate-600 block mb-1">Asset ID *</label>
+                  <input
+                    type="text"
+                    required
+                    value={assetForm.assetId}
+                    onChange={(e) => setAssetForm({ ...assetForm, assetId: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="font-medium text-slate-600 block mb-1">Category</label>
+                  <select
+                    value={assetForm.category}
+                    onChange={(e) => setAssetForm({ ...assetForm, category: e.target.value as any })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs"
+                  >
+                    <option value="Microcontroller">Microcontroller</option>
+                    <option value="Single Board Computer">Single Board Computer</option>
+                    <option value="Sensor">Sensor</option>
+                    <option value="Wireless & RF">Wireless & RF</option>
+                    <option value="Actuator">Actuator</option>
+                    <option value="Testing Equipment">Testing Equipment</option>
+                    <option value="Tooling">Tooling</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="font-medium text-slate-600 block mb-1">Equipment Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={assetForm.name}
+                  onChange={(e) => setAssetForm({ ...assetForm, name: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-medium text-slate-600 block mb-1">Model</label>
+                  <input
+                    type="text"
+                    value={assetForm.model}
+                    onChange={(e) => setAssetForm({ ...assetForm, model: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="font-medium text-slate-600 block mb-1">Location / Shelf</label>
+                  <input
+                    type="text"
+                    value={assetForm.location}
+                    onChange={(e) => setAssetForm({ ...assetForm, location: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="font-medium text-slate-600 block mb-1">Condition</label>
+                  <select
+                    value={assetForm.condition}
+                    onChange={(e) => setAssetForm({ ...assetForm, condition: e.target.value as any })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold"
+                  >
+                    <option value="EXCELLENT">EXCELLENT</option>
+                    <option value="GOOD">GOOD</option>
+                    <option value="FAIR">FAIR</option>
+                    <option value="FAULTY">FAULTY</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="font-medium text-slate-600 block mb-1">Status</label>
+                  <select
+                    value={assetForm.status}
+                    onChange={(e) => setAssetForm({ ...assetForm, status: e.target.value as any })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono font-bold"
+                  >
+                    <option value="AVAILABLE">AVAILABLE</option>
+                    <option value="ISSUED">ISSUED</option>
+                    <option value="RESERVED">RESERVED</option>
+                    <option value="UNDER_TESTING">UNDER_TESTING</option>
+                    <option value="DAMAGED">DAMAGED</option>
+                    <option value="UNDER_REPAIR">UNDER_REPAIR</option>
+                    <option value="RETIRED">RETIRED</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setAddModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-xs"
+                >
+                  Add Equipment
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Modal: Edit Hardware Asset */}
+      {editModalOpen && selectedAssetForEdit && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-white border border-slate-200 p-6 rounded-3xl max-w-lg w-full space-y-4 text-xs shadow-2xl my-8">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+              <h3 className="font-bold text-slate-900 text-base">Edit Equipment #{assetForm.assetId}</h3>
+              <button onClick={() => setEditModalOpen(false)} className="p-1 text-slate-400 hover:text-slate-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                updateHardwareAsset(selectedAssetForEdit.assetId, assetForm);
+                setEditModalOpen(false);
+              }}
+              className="space-y-3"
+            >
+              <div>
+                <label className="font-medium text-slate-600 block mb-1">Equipment Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={assetForm.name}
+                  onChange={(e) => setAssetForm({ ...assetForm, name: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-medium text-slate-600 block mb-1">Location / Shelf</label>
+                  <input
+                    type="text"
+                    value={assetForm.location}
+                    onChange={(e) => setAssetForm({ ...assetForm, location: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="font-medium text-slate-600 block mb-1">Condition</label>
+                  <select
+                    value={assetForm.condition}
+                    onChange={(e) => setAssetForm({ ...assetForm, condition: e.target.value as any })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold"
+                  >
+                    <option value="EXCELLENT">EXCELLENT</option>
+                    <option value="GOOD">GOOD</option>
+                    <option value="FAIR">FAIR</option>
+                    <option value="FAULTY">FAULTY</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="font-medium text-slate-600 block mb-1">Status</label>
+                  <select
+                    value={assetForm.status}
+                    onChange={(e) => setAssetForm({ ...assetForm, status: e.target.value as any })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono font-bold text-emerald-800"
+                  >
+                    <option value="AVAILABLE">AVAILABLE</option>
+                    <option value="ISSUED">ISSUED</option>
+                    <option value="RESERVED">RESERVED</option>
+                    <option value="UNDER_TESTING">UNDER_TESTING</option>
+                    <option value="DAMAGED">DAMAGED</option>
+                    <option value="UNDER_REPAIR">UNDER_REPAIR</option>
+                    <option value="RETIRED">RETIRED</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="font-medium text-slate-600 block mb-1">Current Holder</label>
+                  <input
+                    type="text"
+                    value={assetForm.currentHolder || ""}
+                    onChange={(e) => setAssetForm({ ...assetForm, currentHolder: e.target.value || undefined })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-xs"
+                >
+                  Save Equipment
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Modal: Direct Assign */}
+      {assignModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white border border-slate-200 p-6 rounded-3xl max-w-md w-full space-y-4 text-xs shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+              <h3 className="font-bold text-slate-900 text-base">Direct Assign Asset #{assignAssetId}</h3>
+              <button onClick={() => setAssignModalOpen(false)} className="p-1 text-slate-400 hover:text-slate-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                forceAssignHardware(assignAssetId, assignStudentName, assignStudentId, assignProject, assignDays);
+                setAssignModalOpen(false);
+              }}
+              className="space-y-3"
+            >
+              <div>
+                <label className="font-medium text-slate-600 block mb-1">Student / Holder Name</label>
+                <input
+                  type="text"
+                  required
+                  value={assignStudentName}
+                  onChange={(e) => setAssignStudentName(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="font-medium text-slate-600 block mb-1">Project Allocation</label>
+                <input
+                  type="text"
+                  required
+                  value={assignProject}
+                  onChange={(e) => setAssignProject(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="font-medium text-slate-600 block mb-1">Duration (Days)</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={60}
+                  value={assignDays}
+                  onChange={(e) => setAssignDays(Number(e.target.value))}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono font-bold"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setAssignModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-xs"
+                >
+                  Confirm Checkout
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

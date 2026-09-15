@@ -512,3 +512,30 @@ export interface AppNotification {
   timestamp: string;
   read: boolean;
 }
+
+export interface ClubMetrics {
+  totalMembers: number;
+  activeStudents: number;
+  facultyMentors: number;
+  activeProjects: number;
+  completedProjects: number;
+  hardwareAssets: number;
+  currentlyIssued: number;
+  gitHubCommits: number;
+}
+
+export interface SystemAnnouncement {
+  title: string;
+  message: string;
+  type: "info" | "warning" | "success" | "alert";
+  active: boolean;
+  updatedAt: string;
+}
+
+export interface LabStatusBroadcast {
+  status: "OPEN" | "RESTRICTED" | "MAINTENANCE" | "CLOSED";
+  customMessage: string;
+  operatingHours: string;
+  inChargeName: string;
+}
+

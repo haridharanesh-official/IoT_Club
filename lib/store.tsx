@@ -28,7 +28,12 @@ import {
   AuthUser,
   AuthRole,
   AuthSession,
+  ClubMetrics,
+  SystemAnnouncement,
+  LabStatusBroadcast,
+  ClubConfig,
 } from "./types";
+import { defaultClubConfig } from "./clubConfig";
 import {
   initialDemoStudent,
   initialApplications,
@@ -49,6 +54,32 @@ import {
   initialTeamRecruitments,
   initialNotifications,
 } from "./mockData";
+
+export const initialClubMetrics: ClubMetrics = {
+  totalMembers: 186,
+  activeStudents: 142,
+  facultyMentors: 12,
+  activeProjects: 17,
+  completedProjects: 43,
+  hardwareAssets: 268,
+  currentlyIssued: 72,
+  gitHubCommits: 1283,
+};
+
+export const initialSystemAnnouncement: SystemAnnouncement = {
+  title: "IoT Club Active Operations & Spring Sprint 2026",
+  message: "Admin controls and physical equipment checkout tracking are live. All project leads must submit bi-weekly progress updates.",
+  type: "info",
+  active: true,
+  updatedAt: "Today, 10:00 AM",
+};
+
+export const initialLabStatusBroadcast: LabStatusBroadcast = {
+  status: "OPEN",
+  customMessage: "IoT & Physical Computing Lab is operational. Workstation benches 1-6 open for testing and soldering.",
+  operatingHours: "08:30 AM - 06:30 PM",
+  inChargeName: "Prof. R. Soundararajan / Dr. K. Swaminathan",
+};
 
 export interface StoredUserCredential {
   user: AuthUser;
@@ -172,6 +203,33 @@ interface IoTAppContextType {
   notifications: AppNotification[];
   markNotificationAsRead: (id: string) => void;
   resetDemoState: () => void;
+  // Admin & Governance Controls
+  clubMetrics: ClubMetrics;
+  updateClubMetrics: (metrics: Partial<ClubMetrics>) => void;
+  resetClubMetrics: () => void;
+  clubConfig: ClubConfig;
+  updateClubConfig: (config: Partial<ClubConfig>) => void;
+  systemAnnouncement: SystemAnnouncement;
+  setSystemAnnouncement: (announcement: Partial<SystemAnnouncement>) => void;
+  labStatusBroadcast: LabStatusBroadcast;
+  setLabStatusBroadcast: (status: Partial<LabStatusBroadcast>) => void;
+  addApplication: (appData: Omit<Application, "id" | "appliedDate">) => Application;
+  updateApplication: (id: string, updates: Partial<Application>) => void;
+  deleteApplication: (id: string) => void;
+  addHardwareAsset: (asset: HardwareAsset) => void;
+  updateHardwareAsset: (assetId: string, updates: Partial<HardwareAsset>) => void;
+  deleteHardwareAsset: (assetId: string) => void;
+  forceAssignHardware: (assetId: string, studentName: string, studentId: string, project: string, days: number) => void;
+  forceReturnHardware: (assetId: string) => void;
+  authUsers: StoredUserCredential[];
+  addUser: (userData: AuthUser, password?: string) => void;
+  updateUser: (userId: string, updates: Partial<AuthUser>) => void;
+  deleteUser: (userId: string) => void;
+  changeUserRole: (userId: string, newRole: AuthRole) => void;
+  updateProject: (projectId: string, updates: Partial<Project>) => void;
+  deleteProject: (projectId: string) => void;
+  addManualAuditLog: (action: string, entity: string, details: string) => void;
+  clearAuditLogs: () => void;
 }
 
 const IoTAppContext = createContext<IoTAppContextType | undefined>(undefined);
@@ -182,6 +240,11 @@ export function IoTAppProvider({ children }: { children: React.ReactNode }) {
   const [demoRole, setDemoRoleState] = useState<DemoRole>("public");
   const [student, setStudent] = useState<UserProfile>(initialDemoStudent);
   const [applications, setApplications] = useState<Application[]>(initialApplications);
+  const [clubMetrics, setClubMetrics] = useState<ClubMetrics>(initialClubMetrics);
+  const [systemAnnouncement, setSystemAnnouncementState] = useState<SystemAnnouncement>(initialSystemAnnouncement);
+  const [labStatusBroadcast, setLabStatusBroadcastState] = useState<LabStatusBroadcast>(initialLabStatusBroadcast);
+  const [clubConfig, setClubConfigState] = useState<ClubConfig>(defaultClubConfig);
+
 
   // Initialize session from localStorage on mount
   useEffect(() => {
@@ -966,6 +1029,373 @@ export function IoTAppProvider({ children }: { children: React.ReactNode }) {
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
   }, []);
 
+  // Update Club Metrics
+  const updateClubMetrics = useCallback((updates: Partial<ClubMetrics>) => {
+    setClubMetrics((prev) => ({ ...prev, ...updates }));
+    const logItem: AuditLogItem = {
+      id: `log-${Date.now()}`,
+      user: currentUser?.name || "Super Admin",
+      action: "METRICS_UPDATED",
+      entity: "ClubMetrics",
+      entityId: "system-metrics",
+      timestamp: new Date().toLocaleString(),
+      details: `Updated administrative statistics and dashboard KPI metrics.`,
+    };
+    setAuditLogs((prev) => [logItem, ...prev]);
+  }, [currentUser]);
+
+  const resetClubMetrics = useCallback(() => {
+    setClubMetrics(initialClubMetrics);
+  }, []);
+
+  // Update Club Configuration
+  const updateClubConfig = useCallback((updates: Partial<ClubConfig>) => {
+    setClubConfigState((prev) => ({ ...prev, ...updates }));
+    const logItem: AuditLogItem = {
+      id: `log-${Date.now()}`,
+      user: currentUser?.name || "Super Admin",
+      action: "CLUB_CONFIG_UPDATED",
+      entity: "ClubConfig",
+      entityId: "global-config",
+      timestamp: new Date().toLocaleString(),
+      details: `Updated club institutional metadata and contact details.`,
+    };
+    setAuditLogs((prev) => [logItem, ...prev]);
+  }, [currentUser]);
+
+  // System Announcement
+  const setSystemAnnouncement = useCallback((updates: Partial<SystemAnnouncement>) => {
+    setSystemAnnouncementState((prev) => ({ ...prev, ...updates, updatedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }));
+    const logItem: AuditLogItem = {
+      id: `log-${Date.now()}`,
+      user: currentUser?.name || "Super Admin",
+      action: "ANNOUNCEMENT_BROADCAST",
+      entity: "SystemAnnouncement",
+      entityId: "banner",
+      timestamp: new Date().toLocaleString(),
+      details: `Published global announcement banner: "${updates.title || 'Updated announcement'}"`,
+    };
+    setAuditLogs((prev) => [logItem, ...prev]);
+  }, [currentUser]);
+
+  // Lab Status Broadcast
+  const setLabStatusBroadcast = useCallback((updates: Partial<LabStatusBroadcast>) => {
+    setLabStatusBroadcastState((prev) => ({ ...prev, ...updates }));
+    const logItem: AuditLogItem = {
+      id: `log-${Date.now()}`,
+      user: currentUser?.name || "Super Admin",
+      action: "LAB_STATUS_BROADCAST",
+      entity: "LabStatusBroadcast",
+      entityId: "lab-status",
+      timestamp: new Date().toLocaleString(),
+      details: `Broadcasted lab operational mode to: ${updates.status || 'Updated'}`,
+    };
+    setAuditLogs((prev) => [logItem, ...prev]);
+  }, [currentUser]);
+
+  // Applications CRUD
+  const addApplication = useCallback((appData: Omit<Application, "id" | "appliedDate">) => {
+    const newId = `APP-2026-${Math.floor(100 + Math.random() * 900)}`;
+    const newApp: Application = {
+      ...appData,
+      id: newId,
+      appliedDate: new Date().toISOString().split("T")[0],
+    };
+    setApplications((prev) => [newApp, ...prev]);
+    const logItem: AuditLogItem = {
+      id: `log-${Date.now()}`,
+      user: currentUser?.name || "Admin",
+      action: "CANDIDATE_CREATED",
+      entity: "Application",
+      entityId: newId,
+      timestamp: new Date().toLocaleString(),
+      details: `Manually added applicant ${newApp.fullName} (${newApp.rollNumber}) to ${newApp.status}.`,
+    };
+    setAuditLogs((prev) => [logItem, ...prev]);
+    return newApp;
+  }, [currentUser]);
+
+  const updateApplication = useCallback((id: string, updates: Partial<Application>) => {
+    setApplications((prev) =>
+      prev.map((a) => (a.id === id ? { ...a, ...updates } : a))
+    );
+    const logItem: AuditLogItem = {
+      id: `log-${Date.now()}`,
+      user: currentUser?.name || "Admin",
+      action: "CANDIDATE_UPDATED",
+      entity: "Application",
+      entityId: id,
+      timestamp: new Date().toLocaleString(),
+      details: `Modified applicant details for #${id} (${updates.fullName || ''}).`,
+    };
+    setAuditLogs((prev) => [logItem, ...prev]);
+  }, [currentUser]);
+
+  const deleteApplication = useCallback((id: string) => {
+    const target = applications.find((a) => a.id === id);
+    setApplications((prev) => prev.filter((a) => a.id !== id));
+    const logItem: AuditLogItem = {
+      id: `log-${Date.now()}`,
+      user: currentUser?.name || "Admin",
+      action: "CANDIDATE_DELETED",
+      entity: "Application",
+      entityId: id,
+      timestamp: new Date().toLocaleString(),
+      details: `Removed applicant record for ${target?.fullName || id}.`,
+    };
+    setAuditLogs((prev) => [logItem, ...prev]);
+  }, [applications, currentUser]);
+
+  // Hardware CRUD
+  const addHardwareAsset = useCallback((asset: HardwareAsset) => {
+    setHardwareAssets((prev) => [asset, ...prev]);
+    const logItem: AuditLogItem = {
+      id: `log-${Date.now()}`,
+      user: currentUser?.name || "Lab Admin",
+      action: "HARDWARE_ADDED",
+      entity: "HardwareAsset",
+      entityId: asset.assetId,
+      timestamp: new Date().toLocaleString(),
+      details: `Registered new inventory asset: ${asset.name} (#${asset.assetId}) in ${asset.location}.`,
+    };
+    setAuditLogs((prev) => [logItem, ...prev]);
+  }, [currentUser]);
+
+  const updateHardwareAsset = useCallback((assetId: string, updates: Partial<HardwareAsset>) => {
+    setHardwareAssets((prev) =>
+      prev.map((a) => (a.assetId === assetId ? { ...a, ...updates } : a))
+    );
+    const logItem: AuditLogItem = {
+      id: `log-${Date.now()}`,
+      user: currentUser?.name || "Lab Admin",
+      action: "HARDWARE_MODIFIED",
+      entity: "HardwareAsset",
+      entityId: assetId,
+      timestamp: new Date().toLocaleString(),
+      details: `Updated asset #${assetId} details.`,
+    };
+    setAuditLogs((prev) => [logItem, ...prev]);
+  }, [currentUser]);
+
+  const deleteHardwareAsset = useCallback((assetId: string) => {
+    const target = hardwareAssets.find((a) => a.assetId === assetId);
+    setHardwareAssets((prev) => prev.filter((a) => a.assetId !== assetId));
+    const logItem: AuditLogItem = {
+      id: `log-${Date.now()}`,
+      user: currentUser?.name || "Lab Admin",
+      action: "HARDWARE_DELETED",
+      entity: "HardwareAsset",
+      entityId: assetId,
+      timestamp: new Date().toLocaleString(),
+      details: `Deleted asset #${assetId} (${target?.name || ''}) from physical inventory.`,
+    };
+    setAuditLogs((prev) => [logItem, ...prev]);
+  }, [hardwareAssets, currentUser]);
+
+  const forceAssignHardware = useCallback((assetId: string, studentName: string, studentId: string, project: string, days: number) => {
+    const returnDate = new Date();
+    returnDate.setDate(returnDate.getDate() + days);
+    setHardwareAssets((prev) =>
+      prev.map((a) =>
+        a.assetId === assetId
+          ? {
+              ...a,
+              status: "ISSUED",
+              currentHolder: studentName,
+              currentHolderId: studentId,
+              projectAllocation: project,
+              issuedDate: new Date().toISOString().split("T")[0],
+              expectedReturnDate: returnDate.toISOString().split("T")[0],
+            }
+          : a
+      )
+    );
+    const logItem: AuditLogItem = {
+      id: `log-${Date.now()}`,
+      user: currentUser?.name || "Lab Admin",
+      action: "HARDWARE_FORCE_ASSIGNED",
+      entity: "HardwareAsset",
+      entityId: assetId,
+      timestamp: new Date().toLocaleString(),
+      details: `Admin assigned #${assetId} directly to ${studentName} for ${project} (${days} days).`,
+    };
+    setAuditLogs((prev) => [logItem, ...prev]);
+  }, [currentUser]);
+
+  const forceReturnHardware = useCallback((assetId: string) => {
+    setHardwareAssets((prev) =>
+      prev.map((a) =>
+        a.assetId === assetId
+          ? {
+              ...a,
+              status: "AVAILABLE",
+              currentHolder: undefined,
+              currentHolderId: undefined,
+              projectAllocation: undefined,
+              issuedDate: undefined,
+              expectedReturnDate: undefined,
+            }
+          : a
+      )
+    );
+    const logItem: AuditLogItem = {
+      id: `log-${Date.now()}`,
+      user: currentUser?.name || "Lab Admin",
+      action: "HARDWARE_FORCE_RETURNED",
+      entity: "HardwareAsset",
+      entityId: assetId,
+      timestamp: new Date().toLocaleString(),
+      details: `Admin force returned asset #${assetId} back to available inventory.`,
+    };
+    setAuditLogs((prev) => [logItem, ...prev]);
+  }, [currentUser]);
+
+  // User & Role Directory CRUD
+  const addUser = useCallback((userData: AuthUser, password = "password123") => {
+    const newCred: StoredUserCredential = {
+      user: userData,
+      passwordHash: password,
+    };
+    setAuthUsers((prev) => [...prev, newCred]);
+    const logItem: AuditLogItem = {
+      id: `log-${Date.now()}`,
+      user: currentUser?.name || "Super Admin",
+      action: "USER_REGISTERED",
+      entity: "AuthUser",
+      entityId: userData.id,
+      timestamp: new Date().toLocaleString(),
+      details: `Created new user account: ${userData.name} (${userData.role} • ${userData.department}).`,
+    };
+    setAuditLogs((prev) => [logItem, ...prev]);
+  }, [currentUser]);
+
+  const updateUser = useCallback((userId: string, updates: Partial<AuthUser>) => {
+    setAuthUsers((prev) =>
+      prev.map((u) =>
+        u.user.id === userId
+          ? { ...u, user: { ...u.user, ...updates } }
+          : u
+      )
+    );
+    if (currentUser?.id === userId) {
+      setCurrentUser((prev) => (prev ? { ...prev, ...updates } : null));
+    }
+    const logItem: AuditLogItem = {
+      id: `log-${Date.now()}`,
+      user: currentUser?.name || "Super Admin",
+      action: "USER_UPDATED",
+      entity: "AuthUser",
+      entityId: userId,
+      timestamp: new Date().toLocaleString(),
+      details: `Modified credentials & details for user #${userId}.`,
+    };
+    setAuditLogs((prev) => [logItem, ...prev]);
+  }, [currentUser]);
+
+  const deleteUser = useCallback((userId: string) => {
+    const target = authUsers.find((u) => u.user.id === userId);
+    setAuthUsers((prev) => prev.filter((u) => u.user.id !== userId));
+    const logItem: AuditLogItem = {
+      id: `log-${Date.now()}`,
+      user: currentUser?.name || "Super Admin",
+      action: "USER_DELETED",
+      entity: "AuthUser",
+      entityId: userId,
+      timestamp: new Date().toLocaleString(),
+      details: `Permanently removed user record: ${target?.user.name || userId}.`,
+    };
+    setAuditLogs((prev) => [logItem, ...prev]);
+  }, [authUsers, currentUser]);
+
+  const changeUserRole = useCallback((userId: string, newRole: AuthRole) => {
+    setAuthUsers((prev) =>
+      prev.map((u) => {
+        if (u.user.id !== userId) return u;
+        let portalRedirect = "/dashboard";
+        if (newRole === "ADMIN") portalRedirect = "/admin";
+        else if (newRole === "TEACHER") portalRedirect = "/teacher";
+        else if (newRole === "CLUB_LEAD") portalRedirect = "/projects";
+        return {
+          ...u,
+          user: {
+            ...u.user,
+            role: newRole,
+            portalRedirect,
+          },
+        };
+      })
+    );
+    const logItem: AuditLogItem = {
+      id: `log-${Date.now()}`,
+      user: currentUser?.name || "Super Admin",
+      action: "ROLE_CHANGED",
+      entity: "AuthUser",
+      entityId: userId,
+      timestamp: new Date().toLocaleString(),
+      details: `Promoted/reassigned user #${userId} role to ${newRole}.`,
+    };
+    setAuditLogs((prev) => [logItem, ...prev]);
+  }, [currentUser]);
+
+  // Projects CRUD
+  const updateProject = useCallback((projectId: string, updates: Partial<Project>) => {
+    setProjects((prev) =>
+      prev.map((p) => (p.id === projectId ? { ...p, ...updates } : p))
+    );
+    const logItem: AuditLogItem = {
+      id: `log-${Date.now()}`,
+      user: currentUser?.name || "Admin",
+      action: "PROJECT_GOVERNANCE_UPDATE",
+      entity: "Project",
+      entityId: projectId,
+      timestamp: new Date().toLocaleString(),
+      details: `Updated project #${projectId} (${updates.title || 'details'}).`,
+    };
+    setAuditLogs((prev) => [logItem, ...prev]);
+  }, [currentUser]);
+
+  const deleteProject = useCallback((projectId: string) => {
+    const target = projects.find((p) => p.id === projectId);
+    setProjects((prev) => prev.filter((p) => p.id !== projectId));
+    const logItem: AuditLogItem = {
+      id: `log-${Date.now()}`,
+      user: currentUser?.name || "Admin",
+      action: "PROJECT_DELETED",
+      entity: "Project",
+      entityId: projectId,
+      timestamp: new Date().toLocaleString(),
+      details: `Removed project record: ${target?.title || projectId}.`,
+    };
+    setAuditLogs((prev) => [logItem, ...prev]);
+  }, [projects, currentUser]);
+
+  // Manual Audit Logs & Clear
+  const addManualAuditLog = useCallback((action: string, entity: string, details: string) => {
+    const logItem: AuditLogItem = {
+      id: `log-${Date.now()}`,
+      user: currentUser?.name || "Administrator",
+      action,
+      entity,
+      entityId: `manual-${Date.now()}`,
+      timestamp: new Date().toLocaleString(),
+      details,
+    };
+    setAuditLogs((prev) => [logItem, ...prev]);
+  }, [currentUser]);
+
+  const clearAuditLogs = useCallback(() => {
+    const clearItem: AuditLogItem = {
+      id: `log-${Date.now()}`,
+      user: currentUser?.name || "Super Admin",
+      action: "AUDIT_LEDGER_PURGED",
+      entity: "AuditLedger",
+      entityId: "ledger-all",
+      timestamp: new Date().toLocaleString(),
+      details: "Archived and purged historic event log trail.",
+    };
+    setAuditLogs([clearItem]);
+  }, [currentUser]);
+
   // Reset Demo State (per Section 63)
   const resetDemoState = useCallback(() => {
     setDemoRoleState("student");
@@ -986,6 +1416,10 @@ export function IoTAppProvider({ children }: { children: React.ReactNode }) {
     setTelemetry(initialTelemetry);
     setAuditLogs(initialAuditLogs);
     setNotifications(initialNotifications);
+    setClubMetrics(initialClubMetrics);
+    setSystemAnnouncementState(initialSystemAnnouncement);
+    setLabStatusBroadcastState(initialLabStatusBroadcast);
+    setClubConfigState(defaultClubConfig);
 
     if (typeof window !== "undefined") {
       localStorage.removeItem("iot_demo_role");
@@ -1044,6 +1478,33 @@ export function IoTAppProvider({ children }: { children: React.ReactNode }) {
         notifications,
         markNotificationAsRead,
         resetDemoState,
+        // Admin & Governance Controls
+        clubMetrics,
+        updateClubMetrics,
+        resetClubMetrics,
+        clubConfig,
+        updateClubConfig,
+        systemAnnouncement,
+        setSystemAnnouncement,
+        labStatusBroadcast,
+        setLabStatusBroadcast,
+        addApplication,
+        updateApplication,
+        deleteApplication,
+        addHardwareAsset,
+        updateHardwareAsset,
+        deleteHardwareAsset,
+        forceAssignHardware,
+        forceReturnHardware,
+        authUsers,
+        addUser,
+        updateUser,
+        deleteUser,
+        changeUserRole,
+        updateProject,
+        deleteProject,
+        addManualAuditLog,
+        clearAuditLogs,
       }}
     >
       {children}
