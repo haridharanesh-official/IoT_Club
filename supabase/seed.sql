@@ -81,6 +81,16 @@ insert into public.student_profiles (
   null
 ) on conflict (user_id) do nothing;
 
+update public.student_profiles
+set
+  username = 'approved-member',
+  headline = 'Embedded Systems & IoT Specialization Engineer',
+  bio = 'Passionate about edge computing, FreeRTOS, and mesh sensor networks.',
+  github_url = 'https://github.com/approved-student',
+  linkedin_url = 'https://linkedin.com/in/approved-student',
+  portfolio_url = 'https://approved-student.example.com'
+where user_id = 'c4a6963f-48e4-4f99-8ceb-1d15030a1974';
+
 insert into public.membership_applications (
   id, user_id, registration_id, reason_for_joining, skill_level,
   previous_iot_experience, experience_description, status,
