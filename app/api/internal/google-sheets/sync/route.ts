@@ -5,6 +5,20 @@ import { drainGoogleSheetsOutbox } from '@/lib/integrations/google-sheets'
 
 export const dynamic = 'force-dynamic'
 
+function getInternalSheetsSyncSecret(): string | undefined {
+  if (process.env.INTERNAL_SHEETS_SYNC_SECRET) return process.env.INTERNAL_SHEETS_SYNC_SECRET
+  try {
+    const { existsSync, readFileSync } = require('node:fs')
+    if (existsSync('.env.local')) {
+      const match = readFileSync('.env.local', 'utf8').match(/^INTERNAL_SHEETS_SYNC_SECRET=(.*)$/m)
+      if (match) return match[1].trim().replace(/^['"]|['"]$/g, '')
+    }
+  } catch {
+    // ignore
+  }
+  return undefined
+}
+
 function getServiceRoleKey(): string | undefined {
   if (process.env.SUPABASE_SERVICE_ROLE_KEY) return process.env.SUPABASE_SERVICE_ROLE_KEY
   try {
@@ -22,13 +36,14 @@ function getServiceRoleKey(): string | undefined {
 /**
  * Internal protected route for triggering Google Sheets outbox drain.
  *
- * Hardened Authorization Rules:
+ * Hardened Authorization Contract:
  * - Allowed callers:
- *   1. Valid internal server secret:
- *      Header 'x-internal-secret' matching SUPABASE_SERVICE_ROLE_KEY.
- *      OR 'Authorization: Bearer <secret>' matching SUPABASE_SERVICE_ROLE_KEY.
+ *   1. Dedicated internal worker secret:
+ *      Header 'x-internal-secret' matching INTERNAL_SHEETS_SYNC_SECRET.
+ *      OR 'Authorization: Bearer <secret>' matching INTERNAL_SHEETS_SYNC_SECRET.
  *   2. Authenticated user with role ADMIN or SUPER_ADMIN in public.profiles.
- * - Denied callers:
+ * - Explicitly Denied:
+ *   - SUPABASE_SERVICE_ROLE_KEY supplied as secret or Bearer token -> 403 Forbidden.
  *   - Anonymous callers without credentials -> 401 Unauthorized.
  *   - Authenticated users with role STUDENT or TEACHER -> 403 Forbidden.
  *   - Invalid internal secret -> 403 Forbidden.
@@ -37,6 +52,7 @@ export async function POST(request: NextRequest) {
   try {
     const internalSecret = request.headers.get('x-internal-secret')
     const authHeader = request.headers.get('authorization')
+    const internalSheetsSyncSecret = getInternalSheetsSyncSecret()
     const serviceRoleKey = getServiceRoleKey()
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321'
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || ''
@@ -44,9 +60,25 @@ export async function POST(request: NextRequest) {
     let authorized = false
     let callerUser: User | null = null
 
-    // 1. Check explicit internal secret header
+    // 1. Explicit rejection: SUPABASE_SERVICE_ROLE_KEY must NEVER be accepted as HTTP worker secret
+    if (serviceRoleKey) {
+      if (internalSecret && internalSecret === serviceRoleKey) {
+        return NextResponse.json(
+          { ok: false, message: 'Forbidden. Service role key is not permitted as worker authentication secret.' },
+          { status: 403 }
+        )
+      }
+      if (authHeader && (authHeader === `Bearer ${serviceRoleKey}` || authHeader.slice(7).trim() === serviceRoleKey)) {
+        return NextResponse.json(
+          { ok: false, message: 'Forbidden. Service role key is not permitted as worker authentication secret.' },
+          { status: 403 }
+        )
+      }
+    }
+
+    // 2. Check dedicated internal secret
     if (internalSecret) {
-      if (serviceRoleKey && internalSecret === serviceRoleKey) {
+      if (internalSheetsSyncSecret && internalSecret === internalSheetsSyncSecret) {
         authorized = true
       } else {
         return NextResponse.json(
@@ -56,7 +88,7 @@ export async function POST(request: NextRequest) {
       }
     } else if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.slice(7).trim()
-      if (serviceRoleKey && token === serviceRoleKey) {
+      if (internalSheetsSyncSecret && token === internalSheetsSyncSecret) {
         authorized = true
       } else {
         // Token may be a user JWT access token
@@ -76,7 +108,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 2. Check session if not yet authorized by server secret
+    // 3. Check session if not yet authorized by dedicated internal secret
     if (!authorized) {
       if (!callerUser) {
         const supabase = await createClient()

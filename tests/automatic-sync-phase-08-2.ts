@@ -287,9 +287,10 @@ async function runPhase082Tests() {
     const unauthJson = await unauthRes.json()
     assert.equal(unauthJson.ok, false, 'Anonymous caller rejected')
 
+    const syncSecret = process.env.INTERNAL_SHEETS_SYNC_SECRET || SERVICE_KEY
     const authRes = await fetch('http://localhost:3000/api/internal/google-sheets/sync', {
       method: 'POST',
-      headers: { 'x-internal-secret': SERVICE_KEY },
+      headers: { 'x-internal-secret': syncSecret },
     })
     assert.equal(authRes.status, 200, 'Authorized internal secret call succeeds with 200')
     const authJson = await authRes.json()

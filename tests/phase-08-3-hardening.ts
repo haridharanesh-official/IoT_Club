@@ -21,6 +21,7 @@ const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
 const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH'
 const SPREADSHEET_ID = process.env.GOOGLE_SHEETS_SPREADSHEET_ID!
 const SHEET_TAB = process.env.GOOGLE_SHEETS_REGISTRATION_TAB || 'Registrations'
+const INTERNAL_SYNC_SECRET = process.env.INTERNAL_SHEETS_SYNC_SECRET!
 
 const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_KEY, {
   auth: { persistSession: false },
@@ -82,7 +83,7 @@ async function runHardeningTests() {
   console.log('TEST 3: Valid internal server secret...')
   const goodSecretRes = await fetch(`${BASE_URL}/api/internal/google-sheets/sync`, {
     method: 'POST',
-    headers: { 'x-internal-secret': SERVICE_KEY },
+    headers: { 'x-internal-secret': INTERNAL_SYNC_SECRET },
   })
   assert.equal(goodSecretRes.status, 200, 'Valid internal secret must return 200')
   const goodSecretJson = await goodSecretRes.json()
