@@ -23,7 +23,7 @@ const env = Object.fromEntries(
 )
 
 assert.equal(env.NEXT_PUBLIC_SUPABASE_URL, 'http://127.0.0.1:54321', 'Must use local Supabase')
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.LOCAL_SERVICE_ROLE_KEY || ''
+const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.LOCAL_SERVICE_ROLE_KEY || ''
 const supabase = createClient(env.NEXT_PUBLIC_SUPABASE_URL, serviceRoleKey)
 
 const config = {

@@ -206,3 +206,90 @@ export class HttpGoogleSheetsAdapter implements GoogleSheetsAdapter {
     return data.values || []
   }
 }
+
+export interface ServiceAccountCredentials {
+  client_email: string
+  private_key: string
+  [key: string]: unknown
+}
+
+export function loadServiceAccountCredentialsFromEnv(): ServiceAccountCredentials | null {
+  const inline = process.env.GOOGLE_SERVICE_ACCOUNT_KEY
+  if (inline) {
+    try {
+      return JSON.parse(inline)
+    } catch {
+      return null
+    }
+  }
+
+  const filePath = process.env.GOOGLE_APPLICATION_CREDENTIALS
+  if (filePath) {
+    try {
+      const { existsSync, readFileSync } = require('node:fs')
+      if (existsSync(filePath)) {
+        const content = readFileSync(filePath, 'utf8')
+        return JSON.parse(content)
+      }
+    } catch {
+      return null
+    }
+  }
+
+  return null
+}
+
+export async function getGoogleAccessToken(creds: ServiceAccountCredentials): Promise<string> {
+  const { createSign } = require('node:crypto')
+  const now = Math.floor(Date.now() / 1000)
+  const header = { alg: 'RS256', typ: 'JWT' }
+  const payload = {
+    iss: creds.client_email,
+    scope: 'https://www.googleapis.com/auth/spreadsheets',
+    aud: 'https://oauth2.googleapis.com/token',
+    exp: now + 3600,
+    iat: now,
+  }
+
+  const base64url = (obj: object) =>
+    Buffer.from(JSON.stringify(obj)).toString('base64url')
+
+  const encodedHeader = base64url(header)
+  const encodedPayload = base64url(payload)
+  const message = `${encodedHeader}.${encodedPayload}`
+
+  const signer = createSign('RSA-SHA256')
+  signer.update(message)
+  signer.end()
+  const signature = signer.sign(creds.private_key, 'base64url')
+
+  const assertion = `${message}.${signature}`
+
+  const response = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+      assertion,
+    }),
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(`Google OAuth token exchange failed (${response.status}): ${errorText}`)
+  }
+
+  const data = await response.json()
+  return data.access_token
+}
+
+export function createGoogleSheetsAdapterFromEnv(): GoogleSheetsAdapter {
+  const creds = loadServiceAccountCredentialsFromEnv()
+  if (!creds) {
+    const filePath = process.env.GOOGLE_APPLICATION_CREDENTIALS || 'C:/Secure/IoT-Club/iot-club-sheets-dev.json'
+    throw new Error(
+      `Google credentials not found at "${filePath}". To enable live Google Sheets synchronization, please place your Service Account JSON key at that location or set GOOGLE_SERVICE_ACCOUNT_KEY.`
+    )
+  }
+  return new HttpGoogleSheetsAdapter(() => getGoogleAccessToken(creds))
+}

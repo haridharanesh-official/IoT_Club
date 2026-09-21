@@ -8,7 +8,7 @@ const env = Object.fromEntries(readFileSync('.env.local', 'utf8').split(/\r?\n/)
 
 assert.equal(env.NEXT_PUBLIC_SUPABASE_URL, 'http://127.0.0.1:54321', 'Must use local Supabase')
 
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.LOCAL_SERVICE_ROLE_KEY
+const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.LOCAL_SERVICE_ROLE_KEY
 
 const makeAnonClient = () => createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)
 const makeServiceClient = () => createClient(env.NEXT_PUBLIC_SUPABASE_URL, serviceRoleKey)
@@ -42,6 +42,21 @@ async function createAndConfirmUser(email) {
 async function runAudit() {
   console.log('--- STARTING PHASE 06 AUDIT SUITE ---')
   const results = {}
+  const service = makeServiceClient()
+
+  // Clean up any previous test users to ensure idempotency
+  const testEmails = [
+    'test.alpha@college.example',
+    'test.beta@college.example',
+    'test.gamma@college.example',
+    'test.admin@college.example',
+  ]
+  const { data: existingUsers } = await service.auth.admin.listUsers()
+  for (const u of existingUsers?.users || []) {
+    if (testEmails.includes(u.email)) {
+      await service.auth.admin.deleteUser(u.id)
+    }
+  }
 
   // 1. Synthetic User: Test Student Alpha
   const alphaEmail = 'test.alpha@college.example'
@@ -93,7 +108,6 @@ async function runAudit() {
   results.registrationId = registrationId
 
   // 2. Read back and verify all DB records
-  const service = makeServiceClient()
   const { data: authUser } = await service.auth.admin.getUserById(alphaUser.id)
   const { data: profile } = await service.from('profiles').select('*').eq('id', alphaUser.id).single()
   const { data: studentProfile } = await service.from('student_profiles').select('*').eq('user_id', alphaUser.id).single()
