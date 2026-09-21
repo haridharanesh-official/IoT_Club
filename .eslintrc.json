@@ -1,0 +1,7 @@
+{
+  "extends": "next",
+  "rules": {
+    "react/jsx-no-comment-textnodes": "warn",
+    "react/no-unescaped-entities": "warn"
+  }
+}
