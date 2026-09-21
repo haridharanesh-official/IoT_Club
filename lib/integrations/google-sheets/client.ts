@@ -223,10 +223,32 @@ export function loadServiceAccountCredentialsFromEnv(): ServiceAccountCredential
     }
   }
 
-  const filePath = process.env.GOOGLE_APPLICATION_CREDENTIALS
+  let filePath = process.env.GOOGLE_APPLICATION_CREDENTIALS
+  const { existsSync, readFileSync } = require('node:fs')
+
+  if (!filePath && existsSync('.env.local')) {
+    try {
+      const localEnv = Object.fromEntries(
+        readFileSync('.env.local', 'utf8')
+          .split(/\r?\n/)
+          .filter((line: string) => line.includes('=') && !line.startsWith('#'))
+          .map((line: string) => {
+            const at = line.indexOf('=')
+            return [line.slice(0, at).trim(), line.slice(at + 1).trim().replace(/^['"]|['"]$/g, '')]
+          })
+      )
+      filePath = localEnv.GOOGLE_APPLICATION_CREDENTIALS
+    } catch {
+      // ignore
+    }
+  }
+
+  if (!filePath) {
+    filePath = 'C:/Secure/IoT-Club/iot-club-sheets-dev.json'
+  }
+
   if (filePath) {
     try {
-      const { existsSync, readFileSync } = require('node:fs')
       if (existsSync(filePath)) {
         const content = readFileSync(filePath, 'utf8')
         return JSON.parse(content)

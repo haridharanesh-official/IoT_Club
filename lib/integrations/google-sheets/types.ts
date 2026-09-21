@@ -1,5 +1,19 @@
 export type SheetSyncStatus = 'PENDING' | 'SYNCING' | 'SYNCED' | 'FAILED'
 
+export interface SheetSyncLog {
+  id: string
+  entity_type: 'MEMBERSHIP_APPLICATION'
+  entity_id: string
+  operation: 'UPSERT'
+  sync_status: SheetSyncStatus
+  attempt_count: number
+  last_attempt_at: string | null
+  synced_at: string | null
+  error_message: string | null
+  created_at: string
+  updated_at: string
+}
+
 export interface GoogleSheetsConfig {
   spreadsheetId: string
   sheetName: string
