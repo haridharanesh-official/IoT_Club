@@ -49,8 +49,13 @@ import {
   Cpu,
   FolderGit2,
 } from "lucide-react";
+import { MembershipDashboardCounts } from "@/lib/admin/membership";
 
-export const AdminPortal: React.FC = () => {
+interface AdminPortalProps {
+  membershipStats?: MembershipDashboardCounts;
+}
+
+export const AdminPortal: React.FC<AdminPortalProps> = ({ membershipStats }) => {
   const {
     applications,
     updateApplicationStatus,
@@ -580,14 +585,61 @@ export const AdminPortal: React.FC = () => {
           </button>
 
           <Link
-            href="/lab"
+            href="/admin/membership"
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition"
+          >
+            <Users className="w-3.5 h-3.5" />
+            <span>Membership Portal {membershipStats ? `(${membershipStats.total})` : ''} →</span>
+          </Link>
+
+          <Link
+            href="/lab"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold shadow-xs transition"
           >
             <Boxes className="w-3.5 h-3.5" />
             <span>Hardware Portal ({hardwareAssets.length}) →</span>
           </Link>
         </div>
       </div>
+
+      {/* Real PostgreSQL Membership Administration Summary Strip */}
+      {membershipStats && (
+        <div className="bg-white border border-emerald-200/80 rounded-2xl p-4 shadow-xs space-y-2.5">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-800">
+                Authoritative PostgreSQL Membership Records
+              </h2>
+            </div>
+            <Link
+              href="/admin/membership"
+              className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-800 transition"
+            >
+              <span>Manage Applications in Detail →</span>
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            {[
+              { label: "Total Applications", val: membershipStats.total, color: "text-slate-900", query: "ALL" },
+              { label: "Pending Review", val: membershipStats.pending, color: "text-amber-700", query: "PENDING" },
+              { label: "Approved Members", val: membershipStats.approved, color: "text-emerald-700", query: "APPROVED" },
+              { label: "Rejected", val: membershipStats.rejected, color: "text-rose-700", query: "REJECTED" },
+              { label: "Suspended", val: membershipStats.suspended, color: "text-slate-600", query: "SUSPENDED" },
+            ].map((m) => (
+              <Link
+                key={m.label}
+                href={`/admin/membership?status=${m.query}`}
+                className="p-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/70 transition"
+              >
+                <div className="text-[10px] text-slate-500 font-mono">{m.label}</div>
+                <div className={`text-lg font-bold font-mono mt-0.5 ${m.color}`}>{m.val}</div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Admin Dashboard Metrics Strip (Editable!) */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
@@ -649,6 +701,29 @@ export const AdminPortal: React.FC = () => {
       {/* ========================================================================= */}
       {activeTab === "recruitment" && (
         <div className="space-y-4">
+          {/* Real Membership Management Notification Banner */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 shadow-xs">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                <Users className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-800">
+                  Real Club Membership Administration Available
+                </h4>
+                <p className="text-xs text-emerald-700 mt-0.5">
+                  Official membership applications, identity verification, approval/rejection RPCs, and Google Sheets synchronization operate live on PostgreSQL.
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/admin/membership"
+              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shrink-0 shadow-xs text-center"
+            >
+              Open Real Membership Portal {membershipStats ? `(${membershipStats.pending} Pending)` : ''} →
+            </Link>
+          </div>
+
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
             <div className="flex items-center gap-2 flex-wrap">
               <button

@@ -1,13 +1,17 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import { resolveUserDestination } from '@/lib/auth/server'
-import { AdminPortal } from "@/components/admin/AdminPortal"
+import { AdminPortal } from '@/components/admin/AdminPortal'
+import { getMembershipDashboardCounts } from '@/lib/admin/membership'
 
 export const dynamic = 'force-dynamic'
 
 export default async function AdminPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
   if (!user) {
     redirect('/login')
   }
@@ -23,5 +27,7 @@ export default async function AdminPage() {
     redirect(destination)
   }
 
-  return <AdminPortal />
+  const membershipStats = await getMembershipDashboardCounts(supabase)
+
+  return <AdminPortal membershipStats={membershipStats} />
 }

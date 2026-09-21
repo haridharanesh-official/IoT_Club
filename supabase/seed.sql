@@ -1,1 +1,391 @@
--- Local development seed data will be added in a later phase.
+-- Seed data for local testing and deterministic reset
+
+-- 1. Test Admin Account: test.admin@college.example (Password: TestPassword123!)
+insert into auth.users (
+  id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
+  raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+  confirmation_token, recovery_token, email_change_token_new, email_change
+) values (
+  '3e96bf7d-2f0b-46af-8da2-b77f576b18a8',
+  '00000000-0000-0000-0000-000000000000',
+  'authenticated',
+  'authenticated',
+  'test.admin@college.example',
+  extensions.crypt('TestPassword123!', extensions.gen_salt('bf')),
+  now(),
+  '{"provider":"email","providers":["email"]}',
+  '{"full_name":"Test Admin","email":"test.admin@college.example"}',
+  now(),
+  now(),
+  '', '', '', ''
+) on conflict (id) do update set
+  encrypted_password = excluded.encrypted_password,
+  email_confirmed_at = excluded.email_confirmed_at;
+
+update public.profiles
+set role = 'ADMIN',
+    membership_status = 'APPROVED',
+    full_name = 'Test Admin'
+where id = '3e96bf7d-2f0b-46af-8da2-b77f576b18a8';
+
+-- 2. Preserved Known Fixture: IOT-2026-00008 (Hari Dharanesh SP, APPROVED)
+insert into auth.users (
+  id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
+  raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+  confirmation_token, recovery_token, email_change_token_new, email_change
+) values (
+  'c4a6963f-48e4-4f99-8ceb-1d15030a1974',
+  '00000000-0000-0000-0000-000000000000',
+  'authenticated',
+  'authenticated',
+  'haridharanesh.sp@gmail.com',
+  extensions.crypt('TestPassword123!', extensions.gen_salt('bf')),
+  now(),
+  '{"provider":"google","providers":["google"]}',
+  '{"name":"Hari Dharanesh SP","full_name":"Hari Dharanesh SP","email":"haridharanesh.sp@gmail.com"}',
+  now(),
+  now(),
+  '', '', '', ''
+) on conflict (id) do update set
+  encrypted_password = excluded.encrypted_password,
+  email_confirmed_at = excluded.email_confirmed_at;
+
+update public.profiles
+set role = 'STUDENT',
+    membership_status = 'APPROVED',
+    full_name = 'Hari Dharanesh SP'
+where id = 'c4a6963f-48e4-4f99-8ceb-1d15030a1974';
+
+insert into public.student_profiles (
+  user_id, registration_id, date_of_birth, gender, mobile_number,
+  personal_email, college_email, register_number, department,
+  degree_programme, year_of_study, semester, section, batch,
+  github_url, linkedin_url, portfolio_url
+) values (
+  'c4a6963f-48e4-4f99-8ceb-1d15030a1974',
+  'IOT-2026-00008',
+  '2007-10-04',
+  'Male',
+  '8508511975',
+  'haridharanesh.sp@gmail.com',
+  'haridharanesh.sp@gmail.com',
+  '714025149024',
+  'Cybersecurity',
+  'BE',
+  2,
+  3,
+  'A',
+  '2025-2029',
+  null,
+  null,
+  null
+) on conflict (user_id) do nothing;
+
+insert into public.membership_applications (
+  id, user_id, registration_id, reason_for_joining, skill_level,
+  previous_iot_experience, experience_description, status,
+  submitted_at, reviewed_at, reviewed_by, review_notes,
+  consented_accuracy_at, consented_rules_at, consented_data_use_at
+) values (
+  '73e5e408-978d-48b8-8796-663617c6aeb0',
+  'c4a6963f-48e4-4f99-8ceb-1d15030a1974',
+  'IOT-2026-00008',
+  'I wish to Join',
+  'BEGINNER',
+  false,
+  null,
+  'APPROVED',
+  now() - interval '2 days',
+  now() - interval '1 day',
+  '3e96bf7d-2f0b-46af-8da2-b77f576b18a8',
+  'Approved via Phase 08.2 automatic sync',
+  now() - interval '2 days',
+  now() - interval '2 days',
+  now() - interval '2 days'
+) on conflict (id) do nothing;
+
+insert into public.student_interests (user_id, interest)
+values
+  ('c4a6963f-48e4-4f99-8ceb-1d15030a1974', 'Internet of Things'),
+  ('c4a6963f-48e4-4f99-8ceb-1d15030a1974', 'Robotics'),
+  ('c4a6963f-48e4-4f99-8ceb-1d15030a1974', 'Cybersecurity')
+on conflict (user_id, interest) do nothing;
+
+insert into public.student_skills (user_id, category, skill, level)
+values
+  ('c4a6963f-48e4-4f99-8ceb-1d15030a1974', 'PROGRAMMING', 'C++', 'BEGINNER'),
+  ('c4a6963f-48e4-4f99-8ceb-1d15030a1974', 'PROGRAMMING', 'Python', 'BEGINNER'),
+  ('c4a6963f-48e4-4f99-8ceb-1d15030a1974', 'HARDWARE', 'ESP32', 'BEGINNER'),
+  ('c4a6963f-48e4-4f99-8ceb-1d15030a1974', 'HARDWARE', 'ESP8266', 'BEGINNER'),
+  ('c4a6963f-48e4-4f99-8ceb-1d15030a1974', 'TECHNOLOGY', 'Home Assistant', 'BEGINNER'),
+  ('c4a6963f-48e4-4f99-8ceb-1d15030a1974', 'TECHNOLOGY', 'MQTT', 'BEGINNER'),
+  ('c4a6963f-48e4-4f99-8ceb-1d15030a1974', 'TECHNOLOGY', 'Git / GitHub', 'BEGINNER')
+on conflict (user_id, category, skill) do nothing;
+
+update public.sheet_sync_logs
+set sync_status = 'SYNCED',
+    attempt_count = 1,
+    last_attempt_at = now() - interval '1 day',
+    synced_at = now() - interval '1 day'
+where entity_type = 'MEMBERSHIP_APPLICATION'
+  and entity_id = '73e5e408-978d-48b8-8796-663617c6aeb0';
+
+-- 3. Synthetic Fixtures for Admin Testing:
+-- PENDING: IOT-2026-00010 (Kavya Raman)
+-- REJECTED: IOT-2026-00011 (Arun Kumar)
+-- SUSPENDED: IOT-2026-00012 (Deepa S)
+
+-- 3A. PENDING
+insert into auth.users (
+  id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
+  raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+  confirmation_token, recovery_token, email_change_token_new, email_change
+) values (
+  'e1111111-1111-4111-8111-111111111111',
+  '00000000-0000-0000-0000-000000000000',
+  'authenticated',
+  'authenticated',
+  'kavya.pending@college.example',
+  extensions.crypt('TestPassword123!', extensions.gen_salt('bf')),
+  now(),
+  '{"provider":"email","providers":["email"]}',
+  '{"full_name":"Kavya Raman","email":"kavya.pending@college.example"}',
+  now(),
+  now(),
+  '', '', '', ''
+) on conflict (id) do nothing;
+
+update public.profiles
+set role = 'STUDENT',
+    membership_status = 'PENDING',
+    full_name = 'Kavya Raman'
+where id = 'e1111111-1111-4111-8111-111111111111';
+
+insert into public.student_profiles (
+  user_id, registration_id, date_of_birth, gender, mobile_number,
+  personal_email, college_email, register_number, department,
+  degree_programme, year_of_study, semester, section, batch,
+  github_url, linkedin_url, portfolio_url
+) values (
+  'e1111111-1111-4111-8111-111111111111',
+  'IOT-2026-00010',
+  '2006-03-12',
+  'Female',
+  '9123456780',
+  'kavya.raman@personal.example',
+  'kavya.pending@college.example',
+  '714023106045',
+  'Electronics and Communication Engineering',
+  'BE',
+  3,
+  5,
+  'B',
+  '2024-2028',
+  'https://github.com/kavya-raman',
+  'https://linkedin.com/in/kavya-raman',
+  null
+) on conflict (user_id) do nothing;
+
+insert into public.membership_applications (
+  id, user_id, registration_id, reason_for_joining, skill_level,
+  previous_iot_experience, experience_description, status,
+  submitted_at,
+  consented_accuracy_at, consented_rules_at, consented_data_use_at
+) values (
+  'a1111111-1111-4111-8111-111111111111',
+  'e1111111-1111-4111-8111-111111111111',
+  'IOT-2026-00010',
+  'Passionate about edge sensors and smart embedded circuits.',
+  'INTERMEDIATE',
+  true,
+  'Built an ambient telemetry station with Arduino and LoRa.',
+  'PENDING',
+  now() - interval '3 hours',
+  now() - interval '3 hours',
+  now() - interval '3 hours',
+  now() - interval '3 hours'
+) on conflict (id) do nothing;
+
+insert into public.student_interests (user_id, interest)
+values
+  ('e1111111-1111-4111-8111-111111111111', 'Internet of Things'),
+  ('e1111111-1111-4111-8111-111111111111', 'Embedded Systems'),
+  ('e1111111-1111-4111-8111-111111111111', 'Electronics')
+on conflict (user_id, interest) do nothing;
+
+insert into public.student_skills (user_id, category, skill, level)
+values
+  ('e1111111-1111-4111-8111-111111111111', 'PROGRAMMING', 'C++', 'INTERMEDIATE'),
+  ('e1111111-1111-4111-8111-111111111111', 'HARDWARE', 'Arduino', 'INTERMEDIATE'),
+  ('e1111111-1111-4111-8111-111111111111', 'TECHNOLOGY', 'MQTT', 'BEGINNER')
+on conflict (user_id, category, skill) do nothing;
+
+update public.sheet_sync_logs
+set sync_status = 'PENDING',
+    attempt_count = 0
+where entity_type = 'MEMBERSHIP_APPLICATION'
+  and entity_id = 'a1111111-1111-4111-8111-111111111111';
+
+-- 3B. REJECTED
+insert into auth.users (
+  id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
+  raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+  confirmation_token, recovery_token, email_change_token_new, email_change
+) values (
+  'e2222222-2222-4222-8222-222222222222',
+  '00000000-0000-0000-0000-000000000000',
+  'authenticated',
+  'authenticated',
+  'arun.rejected@college.example',
+  extensions.crypt('TestPassword123!', extensions.gen_salt('bf')),
+  now(),
+  '{"provider":"email","providers":["email"]}',
+  '{"full_name":"Arun Kumar","email":"arun.rejected@college.example"}',
+  now(),
+  now(),
+  '', '', '', ''
+) on conflict (id) do nothing;
+
+update public.profiles
+set role = 'STUDENT',
+    membership_status = 'REJECTED',
+    full_name = 'Arun Kumar'
+where id = 'e2222222-2222-4222-8222-222222222222';
+
+insert into public.student_profiles (
+  user_id, registration_id, date_of_birth, gender, mobile_number,
+  personal_email, college_email, register_number, department,
+  degree_programme, year_of_study, semester, section, batch,
+  github_url, linkedin_url, portfolio_url
+) values (
+  'e2222222-2222-4222-8222-222222222222',
+  'IOT-2026-00011',
+  '2005-08-20',
+  'Male',
+  '9876543211',
+  'arun.kumar@personal.example',
+  'arun.rejected@college.example',
+  '714022104012',
+  'Mechanical Engineering',
+  'BE',
+  4,
+  7,
+  'A',
+  '2023-2027',
+  null,
+  null,
+  null
+) on conflict (user_id) do nothing;
+
+insert into public.membership_applications (
+  id, user_id, registration_id, reason_for_joining, skill_level,
+  previous_iot_experience, experience_description, status,
+  submitted_at, reviewed_at, reviewed_by, review_notes,
+  consented_accuracy_at, consented_rules_at, consented_data_use_at
+) values (
+  'a2222222-2222-4222-8222-222222222222',
+  'e2222222-2222-4222-8222-222222222222',
+  'IOT-2026-00011',
+  'Want to explore robotics.',
+  'BEGINNER',
+  false,
+  null,
+  'REJECTED',
+  now() - interval '5 days',
+  now() - interval '4 days',
+  '3e96bf7d-2f0b-46af-8da2-b77f576b18a8',
+  'Incomplete statement of technical interest and prerequisite coursework.',
+  now() - interval '5 days',
+  now() - interval '5 days',
+  now() - interval '5 days'
+) on conflict (id) do nothing;
+
+update public.sheet_sync_logs
+set sync_status = 'SYNCED',
+    attempt_count = 1,
+    last_attempt_at = now() - interval '4 days',
+    synced_at = now() - interval '4 days'
+where entity_type = 'MEMBERSHIP_APPLICATION'
+  and entity_id = 'a2222222-2222-4222-8222-222222222222';
+
+-- 3C. SUSPENDED
+insert into auth.users (
+  id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
+  raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+  confirmation_token, recovery_token, email_change_token_new, email_change
+) values (
+  'e3333333-3333-4333-8333-333333333333',
+  '00000000-0000-0000-0000-000000000000',
+  'authenticated',
+  'authenticated',
+  'deepa.suspended@college.example',
+  extensions.crypt('TestPassword123!', extensions.gen_salt('bf')),
+  now(),
+  '{"provider":"email","providers":["email"]}',
+  '{"full_name":"Deepa S","email":"deepa.suspended@college.example"}',
+  now(),
+  now(),
+  '', '', '', ''
+) on conflict (id) do nothing;
+
+update public.profiles
+set role = 'STUDENT',
+    membership_status = 'SUSPENDED',
+    full_name = 'Deepa S'
+where id = 'e3333333-3333-4333-8333-333333333333';
+
+insert into public.student_profiles (
+  user_id, registration_id, date_of_birth, gender, mobile_number,
+  personal_email, college_email, register_number, department,
+  degree_programme, year_of_study, semester, section, batch,
+  github_url, linkedin_url, portfolio_url
+) values (
+  'e3333333-3333-4333-8333-333333333333',
+  'IOT-2026-00012',
+  '2006-11-05',
+  'Female',
+  '9845123456',
+  'deepa.s@personal.example',
+  'deepa.suspended@college.example',
+  '714023104028',
+  'Computer Science and Engineering',
+  'BE',
+  3,
+  5,
+  'A',
+  '2024-2028',
+  'https://github.com/deepa-s',
+  null,
+  null
+) on conflict (user_id) do nothing;
+
+insert into public.membership_applications (
+  id, user_id, registration_id, reason_for_joining, skill_level,
+  previous_iot_experience, experience_description, status,
+  submitted_at, reviewed_at, reviewed_by, review_notes,
+  consented_accuracy_at, consented_rules_at, consented_data_use_at
+) values (
+  'a3333333-3333-4333-8333-333333333333',
+  'e3333333-3333-4333-8333-333333333333',
+  'IOT-2026-00012',
+  'Developing cloud IoT dashboard.',
+  'ADVANCED',
+  true,
+  'Built Node.js MQTT broker cluster with Grafana.',
+  'SUSPENDED',
+  now() - interval '10 days',
+  now() - interval '2 days',
+  '3e96bf7d-2f0b-46af-8da2-b77f576b18a8',
+  'Suspended pending hardware asset return from semester project.',
+  now() - interval '10 days',
+  now() - interval '10 days',
+  now() - interval '10 days'
+) on conflict (id) do nothing;
+
+update public.sheet_sync_logs
+set sync_status = 'SYNCED',
+    attempt_count = 1,
+    last_attempt_at = now() - interval '2 days',
+    synced_at = now() - interval '2 days'
+where entity_type = 'MEMBERSHIP_APPLICATION'
+  and entity_id = 'a3333333-3333-4333-8333-333333333333';
