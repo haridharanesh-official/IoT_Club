@@ -28,7 +28,7 @@ set role = 'ADMIN',
     full_name = 'Test Admin'
 where id = '3e96bf7d-2f0b-46af-8da2-b77f576b18a8';
 
--- 2. Preserved Known Fixture: IOT-2026-00008 (Hari Dharanesh SP, APPROVED)
+-- 2. Preserved Known Fixture: IOT-2026-00008 (Approved Test Student, APPROVED)
 insert into auth.users (
   id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
   raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
@@ -38,11 +38,11 @@ insert into auth.users (
   '00000000-0000-0000-0000-000000000000',
   'authenticated',
   'authenticated',
-  'haridharanesh.sp@gmail.com',
+  'approved.student@college.example',
   extensions.crypt('TestPassword123!', extensions.gen_salt('bf')),
   now(),
-  '{"provider":"google","providers":["google"]}',
-  '{"name":"Hari Dharanesh SP","full_name":"Hari Dharanesh SP","email":"haridharanesh.sp@gmail.com"}',
+  '{"provider":"email","providers":["email"]}',
+  '{"name":"Approved Test Student","full_name":"Approved Test Student","email":"approved.student@college.example"}',
   now(),
   now(),
   '', '', '', ''
@@ -53,7 +53,7 @@ insert into auth.users (
 update public.profiles
 set role = 'STUDENT',
     membership_status = 'APPROVED',
-    full_name = 'Hari Dharanesh SP'
+    full_name = 'Approved Test Student'
 where id = 'c4a6963f-48e4-4f99-8ceb-1d15030a1974';
 
 insert into public.student_profiles (
@@ -64,13 +64,13 @@ insert into public.student_profiles (
 ) values (
   'c4a6963f-48e4-4f99-8ceb-1d15030a1974',
   'IOT-2026-00008',
-  '2007-10-04',
+  '2005-01-01',
   'Male',
-  '8508511975',
-  'haridharanesh.sp@gmail.com',
-  'haridharanesh.sp@gmail.com',
-  '714025149024',
-  'Cybersecurity',
+  '9000000008',
+  'approved.student@example.com',
+  'approved.student@college.example',
+  'TEST-IOT-00008',
+  'Cyber Security',
   'BE',
   2,
   3,
@@ -90,7 +90,7 @@ insert into public.membership_applications (
   '73e5e408-978d-48b8-8796-663617c6aeb0',
   'c4a6963f-48e4-4f99-8ceb-1d15030a1974',
   'IOT-2026-00008',
-  'I wish to Join',
+  'Dedicated to embedded systems and IoT architecture.',
   'BEGINNER',
   false,
   null,
@@ -98,7 +98,7 @@ insert into public.membership_applications (
   now() - interval '2 days',
   now() - interval '1 day',
   '3e96bf7d-2f0b-46af-8da2-b77f576b18a8',
-  'Approved via Phase 08.2 automatic sync',
+  'Approved synthetic test fixture',
   now() - interval '2 days',
   now() - interval '2 days',
   now() - interval '2 days'
@@ -131,9 +131,9 @@ where entity_type = 'MEMBERSHIP_APPLICATION'
   and entity_id = '73e5e408-978d-48b8-8796-663617c6aeb0';
 
 -- 3. Synthetic Fixtures for Admin Testing:
--- PENDING: IOT-2026-00010 (Kavya Raman)
--- REJECTED: IOT-2026-00011 (Arun Kumar)
--- SUSPENDED: IOT-2026-00012 (Deepa S)
+-- PENDING: IOT-2026-00010 (Pending Test Student)
+-- REJECTED: IOT-2026-00011 (Rejected Test Student)
+-- SUSPENDED: IOT-2026-00012 (Suspended Test Student)
 
 -- 3A. PENDING
 insert into auth.users (
@@ -145,11 +145,11 @@ insert into auth.users (
   '00000000-0000-0000-0000-000000000000',
   'authenticated',
   'authenticated',
-  'kavya.pending@college.example',
+  'pending.student@college.example',
   extensions.crypt('TestPassword123!', extensions.gen_salt('bf')),
   now(),
   '{"provider":"email","providers":["email"]}',
-  '{"full_name":"Kavya Raman","email":"kavya.pending@college.example"}',
+  '{"full_name":"Pending Test Student","email":"pending.student@college.example"}',
   now(),
   now(),
   '', '', '', ''
@@ -158,7 +158,7 @@ insert into auth.users (
 update public.profiles
 set role = 'STUDENT',
     membership_status = 'PENDING',
-    full_name = 'Kavya Raman'
+    full_name = 'Pending Test Student'
 where id = 'e1111111-1111-4111-8111-111111111111';
 
 insert into public.student_profiles (
@@ -169,20 +169,20 @@ insert into public.student_profiles (
 ) values (
   'e1111111-1111-4111-8111-111111111111',
   'IOT-2026-00010',
-  '2006-03-12',
+  '2006-01-01',
   'Female',
-  '9123456780',
-  'kavya.raman@personal.example',
-  'kavya.pending@college.example',
-  '714023106045',
+  '9000000010',
+  'pending.student@example.com',
+  'pending.student@college.example',
+  'TEST-IOT-00010',
   'Electronics and Communication Engineering',
   'BE',
   3,
   5,
   'B',
   '2024-2028',
-  'https://github.com/kavya-raman',
-  'https://linkedin.com/in/kavya-raman',
+  null,
+  null,
   null
 ) on conflict (user_id) do nothing;
 
@@ -236,11 +236,11 @@ insert into auth.users (
   '00000000-0000-0000-0000-000000000000',
   'authenticated',
   'authenticated',
-  'arun.rejected@college.example',
+  'rejected.student@college.example',
   extensions.crypt('TestPassword123!', extensions.gen_salt('bf')),
   now(),
   '{"provider":"email","providers":["email"]}',
-  '{"full_name":"Arun Kumar","email":"arun.rejected@college.example"}',
+  '{"full_name":"Rejected Test Student","email":"rejected.student@college.example"}',
   now(),
   now(),
   '', '', '', ''
@@ -249,7 +249,7 @@ insert into auth.users (
 update public.profiles
 set role = 'STUDENT',
     membership_status = 'REJECTED',
-    full_name = 'Arun Kumar'
+    full_name = 'Rejected Test Student'
 where id = 'e2222222-2222-4222-8222-222222222222';
 
 insert into public.student_profiles (
@@ -260,12 +260,12 @@ insert into public.student_profiles (
 ) values (
   'e2222222-2222-4222-8222-222222222222',
   'IOT-2026-00011',
-  '2005-08-20',
+  '2005-01-01',
   'Male',
-  '9876543211',
-  'arun.kumar@personal.example',
-  'arun.rejected@college.example',
-  '714022104012',
+  '9000000011',
+  'rejected.student@example.com',
+  'rejected.student@college.example',
+  'TEST-IOT-00011',
   'Mechanical Engineering',
   'BE',
   4,
@@ -318,11 +318,11 @@ insert into auth.users (
   '00000000-0000-0000-0000-000000000000',
   'authenticated',
   'authenticated',
-  'deepa.suspended@college.example',
+  'suspended.student@college.example',
   extensions.crypt('TestPassword123!', extensions.gen_salt('bf')),
   now(),
   '{"provider":"email","providers":["email"]}',
-  '{"full_name":"Deepa S","email":"deepa.suspended@college.example"}',
+  '{"full_name":"Suspended Test Student","email":"suspended.student@college.example"}',
   now(),
   now(),
   '', '', '', ''
@@ -331,7 +331,7 @@ insert into auth.users (
 update public.profiles
 set role = 'STUDENT',
     membership_status = 'SUSPENDED',
-    full_name = 'Deepa S'
+    full_name = 'Suspended Test Student'
 where id = 'e3333333-3333-4333-8333-333333333333';
 
 insert into public.student_profiles (
@@ -342,19 +342,19 @@ insert into public.student_profiles (
 ) values (
   'e3333333-3333-4333-8333-333333333333',
   'IOT-2026-00012',
-  '2006-11-05',
+  '2006-01-01',
   'Female',
-  '9845123456',
-  'deepa.s@personal.example',
-  'deepa.suspended@college.example',
-  '714023104028',
+  '9000000012',
+  'suspended.student@example.com',
+  'suspended.student@college.example',
+  'TEST-IOT-00012',
   'Computer Science and Engineering',
   'BE',
   3,
   5,
   'A',
   '2024-2028',
-  'https://github.com/deepa-s',
+  null,
   null,
   null
 ) on conflict (user_id) do nothing;

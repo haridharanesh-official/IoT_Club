@@ -183,7 +183,7 @@ async function runPhase09Tests() {
     mobile_number: '9888877777',
     personal_email: 'charlie.personal@example.com',
     college_email: charlieEmail,
-    register_number: '714022104099',
+    register_number: 'TEST-CHARLIE-099',
     department: 'Information Technology',
     degree_programme: 'BE',
     year_of_study: 3,
@@ -256,9 +256,9 @@ async function runPhase09Tests() {
   assert.equal(searchRegId.applications[0].registrationId, charlieRegId)
 
   // By Register Number
-  const searchRoll = await getAdminMembershipApplications(adminClient, { search: '714022104099' })
+  const searchRoll = await getAdminMembershipApplications(adminClient, { search: 'TEST-CHARLIE-099' })
   assert.ok(searchRoll.applications.length >= 1, 'Search by register_number returns record')
-  assert.ok(searchRoll.applications.some((a) => a.registerNumber === '714022104099'))
+  assert.ok(searchRoll.applications.some((a) => a.registerNumber === 'TEST-CHARLIE-099'))
 
   // By Full Name
   const searchName = await getAdminMembershipApplications(adminClient, { search: 'Charlie Test Student' })
