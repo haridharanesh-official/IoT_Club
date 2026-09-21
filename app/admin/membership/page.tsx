@@ -1,10 +1,28 @@
+import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
+import { resolveUserDestination } from '@/lib/auth/server'
 import MembershipReview from './review'
 
 export const dynamic = 'force-dynamic'
 
 export default async function AdminMembershipPage() {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    redirect('/login')
+  }
+
+  const { data: currentProfile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  if (currentProfile?.role !== 'ADMIN' && currentProfile?.role !== 'SUPER_ADMIN') {
+    const destination = await resolveUserDestination(user.id)
+    redirect(destination)
+  }
+
   const { data, error } = await supabase.from('membership_applications')
     .select('id,registration_id,status,submitted_at,reason_for_joining,skill_level,previous_iot_experience,experience_description,review_notes,user_id,profiles!membership_applications_user_id_fkey(full_name,email)')
     .order('submitted_at', { ascending: false })

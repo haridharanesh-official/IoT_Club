@@ -1,10 +1,14 @@
-import { StudentDashboard } from "@/components/student/StudentDashboard";
-import { RouteGuard } from "@/components/auth/RouteGuard";
+import { redirect } from 'next/navigation'
+import { StudentDashboard } from "@/components/student/StudentDashboard"
+import { resolveUserDestination } from '@/lib/auth/server'
 
-export default function DashboardPage() {
-  return (
-    <RouteGuard requiredRoles={["STUDENT", "CLUB_LEAD", "ADMIN"]}>
-      <StudentDashboard />
-    </RouteGuard>
-  );
+export const dynamic = 'force-dynamic'
+
+export default async function DashboardPage() {
+  const destination = await resolveUserDestination()
+  if (destination !== '/dashboard') {
+    redirect(destination)
+  }
+
+  return <StudentDashboard />
 }

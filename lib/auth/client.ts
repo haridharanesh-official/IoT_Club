@@ -1,4 +1,4 @@
-import { createClient } from '@/utils/supabase/client'
+import { createClient } from '../../utils/supabase/client'
 
 export const ACCOUNT_PATH = '/auth/account'
 
@@ -65,3 +65,40 @@ export async function signOut(): Promise<AuthResult> {
     return { ok: false, message: 'Authentication is temporarily unavailable. Please try again.' }
   }
 }
+
+export function sanitizeInternalRedirect(path: string | null | undefined, fallback = '/auth/account'): string {
+  if (!path) return fallback
+  // Must start with '/' and must not start with '//' or contain backslashes
+  if (path.startsWith('/') && !path.startsWith('//') && !path.includes('\\')) {
+    return path
+  }
+  return fallback
+}
+
+export async function signInWithGoogle(redirectTo?: string): Promise<AuthResult> {
+  try {
+    const origin = typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000')
+    const callbackUrl = new URL('/auth/callback', origin)
+    if (redirectTo) {
+      callbackUrl.searchParams.set('next', sanitizeInternalRedirect(redirectTo))
+    }
+    const { error } = await createClient().auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: callbackUrl.toString(),
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        },
+      },
+    })
+    if (error) {
+      if (error.status === 0) return { ok: false, message: 'Google authentication is temporarily unavailable. Please try again.' }
+      return { ok: false, message: error.message }
+    }
+    return { ok: true }
+  } catch {
+    return { ok: false, message: 'Google authentication is temporarily unavailable. Please try again.' }
+  }
+}
+
