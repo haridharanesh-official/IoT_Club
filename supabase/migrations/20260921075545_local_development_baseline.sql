@@ -1,0 +1,1 @@
+-- Infrastructure baseline only. Application schema begins in a later phase.
