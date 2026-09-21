@@ -389,3 +389,6 @@ set sync_status = 'SYNCED',
     synced_at = now() - interval '2 days'
 where entity_type = 'MEMBERSHIP_APPLICATION'
   and entity_id = 'a3333333-3333-4333-8333-333333333333';
+
+-- Advance registration number sequence beyond seeded fixtures to prevent collision in sequential tests
+select setval('public.registration_number_seq', 50, true);

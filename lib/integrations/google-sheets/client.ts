@@ -217,7 +217,12 @@ export function loadServiceAccountCredentialsFromEnv(): ServiceAccountCredential
   const inline = process.env.GOOGLE_SERVICE_ACCOUNT_KEY
   if (inline) {
     try {
-      return JSON.parse(inline)
+      const trimmed = inline.trim()
+      if (trimmed.startsWith('{')) {
+        return JSON.parse(trimmed)
+      }
+      const decoded = Buffer.from(trimmed, 'base64').toString('utf8')
+      return JSON.parse(decoded)
     } catch {
       return null
     }
@@ -241,10 +246,6 @@ export function loadServiceAccountCredentialsFromEnv(): ServiceAccountCredential
     } catch {
       // ignore
     }
-  }
-
-  if (!filePath) {
-    filePath = 'C:/Secure/IoT-Club/iot-club-sheets-dev.json'
   }
 
   if (filePath) {
