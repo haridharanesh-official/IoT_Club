@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { AlertCircle, ArrowRight, Cpu, Eye, EyeOff, Lock, Mail } from 'lucide-react'
@@ -16,6 +16,11 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [linkError, setLinkError] = useState(false)
+
+  useEffect(() => {
+    setLinkError(new URLSearchParams(window.location.search).has('auth_error'))
+  }, [])
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -65,7 +70,7 @@ export default function LoginPage() {
 
           <div className="p-6 sm:p-8 space-y-6">
             <form onSubmit={submit} noValidate className="space-y-4 text-xs">
-              {error && <div role="alert" className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2"><AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" /><span>{error}</span></div>}
+              {(error || linkError) && <div role="alert" className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2"><AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" /><span>{error || 'This authentication link is invalid or expired. Please request a new one.'}</span></div>}
               {notice && <div role="status" className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs">{notice}</div>}
 
               <div>
@@ -80,6 +85,7 @@ export default function LoginPage() {
               </div>
 
               <button type="submit" disabled={isLoading} className="w-full py-3 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs shadow-xs transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"><span>{isLoading ? 'Please wait...' : activeTab === 'login' ? 'Sign In' : 'Create Account'}</span><ArrowRight className="w-4 h-4" /></button>
+              {activeTab === 'login' && <Link href="/forgot-password" className="block text-center text-emerald-700 hover:text-emerald-800 font-semibold">Forgot password?</Link>}
             </form>
           </div>
         </div>
