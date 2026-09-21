@@ -27,8 +27,13 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  // refreshing the auth token
-  await supabase.auth.getUser()
+  // Validates and refreshes the cookie-backed session when Auth is available.
+  // A local Auth outage must not crash public routes.
+  try {
+    await supabase.auth.getUser()
+  } catch {
+    return supabaseResponse
+  }
 
   return supabaseResponse
 }

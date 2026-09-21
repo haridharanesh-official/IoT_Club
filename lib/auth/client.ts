@@ -1,0 +1,67 @@
+import { createClient } from '@/utils/supabase/client'
+
+export const ACCOUNT_PATH = '/auth/account'
+
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const strongPassword = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/
+
+export function normalizeEmail(email: string) {
+  return email.trim().toLowerCase()
+}
+
+export function validateEmail(email: string) {
+  return emailPattern.test(normalizeEmail(email))
+}
+
+export function validatePassword(password: string) {
+  return strongPassword.test(password)
+}
+
+export type AuthResult = { ok: true; needsConfirmation?: boolean } | { ok: false; message: string }
+
+export async function signIn(email: string, password: string): Promise<AuthResult> {
+  const cleanEmail = normalizeEmail(email)
+  if (!validateEmail(cleanEmail)) return { ok: false, message: 'Enter a valid email address.' }
+  if (!password) return { ok: false, message: 'Enter your password.' }
+
+  try {
+    const { error } = await createClient().auth.signInWithPassword({ email: cleanEmail, password })
+    if (error?.status === 0) return { ok: false, message: 'Authentication is temporarily unavailable. Please try again.' }
+    if (error) return { ok: false, message: 'Unable to sign in. Check your email and password, or confirm your email if required.' }
+    return { ok: true }
+  } catch {
+    return { ok: false, message: 'Authentication is temporarily unavailable. Please try again.' }
+  }
+}
+
+export async function signUp(email: string, password: string): Promise<AuthResult> {
+  const cleanEmail = normalizeEmail(email)
+  if (!validateEmail(cleanEmail)) return { ok: false, message: 'Enter a valid email address.' }
+  if (!validatePassword(password)) {
+    return { ok: false, message: 'Use at least 8 characters with uppercase, lowercase, number, and special character.' }
+  }
+
+  try {
+    const { data, error } = await createClient().auth.signUp({ email: cleanEmail, password })
+    if (error) {
+      if (error.status === 0) return { ok: false, message: 'Authentication is temporarily unavailable. Please try again.' }
+      if (error.code === 'user_already_exists' || error.message.toLowerCase().includes('already registered')) {
+        return { ok: false, message: 'An account with this email already exists. Please sign in.' }
+      }
+      return { ok: false, message: 'Unable to create an account. Please try again.' }
+    }
+    return { ok: true, needsConfirmation: !data.session }
+  } catch {
+    return { ok: false, message: 'Authentication is temporarily unavailable. Please try again.' }
+  }
+}
+
+export async function signOut(): Promise<AuthResult> {
+  try {
+    const { error } = await createClient().auth.signOut()
+    if (error) return { ok: false, message: 'Unable to sign out. Please try again.' }
+    return { ok: true }
+  } catch {
+    return { ok: false, message: 'Authentication is temporarily unavailable. Please try again.' }
+  }
+}

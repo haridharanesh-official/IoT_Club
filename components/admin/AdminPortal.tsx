@@ -368,7 +368,6 @@ export const AdminPortal: React.FC = () => {
     designation: "Student Member (Level 3)",
     portalRedirect: "/dashboard",
   });
-  const [userPassword, setUserPassword] = useState("welcome123");
 
   const handleOpenAddUser = () => {
     setIsEditingUser(false);
@@ -384,7 +383,6 @@ export const AdminPortal: React.FC = () => {
       designation: "Student Member (Level 1)",
       portalRedirect: "/dashboard",
     });
-    setUserPassword("welcome123");
     setUserModalOpen(true);
   };
 
@@ -402,7 +400,7 @@ export const AdminPortal: React.FC = () => {
     if (isEditingUser && selectedUser) {
       updateUser(selectedUser.id, userForm);
     } else {
-      addUser(userForm, userPassword);
+      addUser(userForm);
     }
     setUserModalOpen(false);
   };
@@ -2196,18 +2194,6 @@ export const AdminPortal: React.FC = () => {
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs"
                 />
               </div>
-
-              {!isEditingUser && (
-                <div>
-                  <label className="font-medium text-slate-600 block mb-1">Initial Password</label>
-                  <input
-                    type="text"
-                    value={userPassword}
-                    onChange={(e) => setUserPassword(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono"
-                  />
-                </div>
-              )}
 
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
                 <button
