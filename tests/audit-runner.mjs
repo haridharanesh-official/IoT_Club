@@ -54,6 +54,8 @@ async function runAudit() {
   const { data: existingUsers } = await service.auth.admin.listUsers()
   for (const u of existingUsers?.users || []) {
     if (testEmails.includes(u.email)) {
+      await service.from('audit_logs').delete().eq('actor_user_id', u.id)
+      await service.from('membership_applications').update({ reviewed_by: null }).eq('reviewed_by', u.id)
       await service.auth.admin.deleteUser(u.id)
     }
   }

@@ -47,6 +47,7 @@ export interface BatchSyncSummary {
     operation?: 'APPEND' | 'UPDATE'
     error?: string
   }>
+  error?: string
 }
 
 export interface FullApplicationData {

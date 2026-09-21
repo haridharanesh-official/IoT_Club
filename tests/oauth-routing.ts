@@ -82,10 +82,12 @@ async function runOAuthRoutingTests() {
   const googleEmail = 'google.oauth.student@college.example'
   
   // Clean up if existing
-  const { data: usersList } = await supabase.auth.admin.listUsers()
+  const { data: usersList } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 })
   const existingGoogleUser = usersList?.users?.find(u => u.email === googleEmail)
   if (existingGoogleUser) {
-    // Delete student data
+    // Delete student data and referencing audit logs
+    await supabase.from('audit_logs').delete().eq('actor_user_id', existingGoogleUser.id)
+    await supabase.from('membership_applications').update({ reviewed_by: null }).eq('reviewed_by', existingGoogleUser.id)
     await supabase.from('membership_applications').delete().eq('user_id', existingGoogleUser.id)
     await supabase.from('student_profiles').delete().eq('user_id', existingGoogleUser.id)
     await supabase.from('profiles').delete().eq('id', existingGoogleUser.id)

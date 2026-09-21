@@ -25,7 +25,9 @@ export default function MembershipReview({ applications }: { applications: Appli
     try {
       const { error: reviewError } = await createClient().rpc('review_membership_application', { application_id: applicationId, decision, notes: notes[applicationId]?.trim() || null })
       if (reviewError) { setError('Unable to save the decision. Check your access and try again.'); return }
-      setSuccess(`Application ${decision.toLowerCase()}.`); setNotes(previous => ({ ...previous, [applicationId]: '' })); router.refresh()
+      setSuccess(`Application ${decision.toLowerCase()}.`); setNotes(previous => ({ ...previous, [applicationId]: '' }));
+      fetch('/api/internal/google-sheets/sync', { method: 'POST' }).catch(() => {});
+      router.refresh()
     } catch { setError('The review service is temporarily unavailable. Please try again.') }
     finally { submitting.current = false; setActive(null) }
   }
