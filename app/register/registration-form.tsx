@@ -55,7 +55,7 @@ export default function RegistrationForm({ collegeEmail }: { collegeEmail: strin
         setError(submitError.code === '23505' ? 'This account or register number already has an application.' : 'Unable to submit. Check your details and try again.')
         return
       }
-      fetch('/api/internal/google-sheets/sync', { method: 'POST' }).catch(() => {})
+      fetch('/api/internal/google-sheets/sync/self', { method: 'POST' }).catch(() => {})
       router.replace('/membership/status'); router.refresh()
     } catch { setError('The registration service is temporarily unavailable. Please try again.') }
     finally { submitting.current = false; setBusy(false) }

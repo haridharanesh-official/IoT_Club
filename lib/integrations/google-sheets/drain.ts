@@ -15,7 +15,7 @@ import type { BatchSyncSummary } from './types'
  * - NEVER rolls back database transactions or membership status changes.
  * - Never exposes credentials or secrets to client bundles.
  */
-export async function drainGoogleSheetsOutbox(batchSize = 10): Promise<BatchSyncSummary> {
+function getServiceConfig() {
   const { existsSync, readFileSync } = require('node:fs')
   let localEnv: Record<string, string> = {}
   if ((!process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.GOOGLE_SHEETS_SPREADSHEET_ID) && existsSync('.env.local')) {
@@ -36,6 +36,26 @@ export async function drainGoogleSheetsOutbox(batchSize = 10): Promise<BatchSync
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || localEnv.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321'
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || localEnv.SUPABASE_SERVICE_ROLE_KEY
+  const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID || localEnv.GOOGLE_SHEETS_SPREADSHEET_ID
+  const sheetName = process.env.GOOGLE_SHEETS_REGISTRATION_TAB || localEnv.GOOGLE_SHEETS_REGISTRATION_TAB || 'Registrations'
+
+  return { supabaseUrl, serviceRoleKey, spreadsheetId, sheetName }
+}
+
+/**
+ * Reusable server-only function to drain the Google Sheets outbox.
+ *
+ * Requirements:
+ * - Uses server-side Supabase service credentials.
+ * - Uses HttpGoogleSheetsAdapter via createGoogleSheetsAdapterFromEnv().
+ * - Uses GOOGLE_SHEETS_SPREADSHEET_ID and GOOGLE_SHEETS_REGISTRATION_TAB.
+ * - Processes bounded batches.
+ * - Catches and reports Google API failures without throwing.
+ * - NEVER rolls back database transactions or membership status changes.
+ * - Never exposes credentials or secrets to client bundles.
+ */
+export async function drainGoogleSheetsOutbox(batchSize = 10): Promise<BatchSyncSummary> {
+  const { supabaseUrl, serviceRoleKey, spreadsheetId, sheetName } = getServiceConfig()
 
   if (!serviceRoleKey) {
     const errorMsg = 'SUPABASE_SERVICE_ROLE_KEY is required to drain sheet sync outbox.'
@@ -49,7 +69,6 @@ export async function drainGoogleSheetsOutbox(batchSize = 10): Promise<BatchSync
     }
   }
 
-  const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID || localEnv.GOOGLE_SHEETS_SPREADSHEET_ID
   if (!spreadsheetId) {
     const errorMsg = 'GOOGLE_SHEETS_SPREADSHEET_ID is not configured.'
     console.error('[drainGoogleSheetsOutbox] Configuration error:', errorMsg)
@@ -61,8 +80,6 @@ export async function drainGoogleSheetsOutbox(batchSize = 10): Promise<BatchSync
       details: [],
     }
   }
-
-  const sheetName = process.env.GOOGLE_SHEETS_REGISTRATION_TAB || localEnv.GOOGLE_SHEETS_REGISTRATION_TAB || 'Registrations'
 
   try {
     const supabase = createClient(supabaseUrl, serviceRoleKey, {
@@ -84,6 +101,69 @@ export async function drainGoogleSheetsOutbox(batchSize = 10): Promise<BatchSync
       failed: 0,
       error: sanitized,
       details: [],
+    }
+  }
+}
+
+/**
+ * Scoped helper to synchronize ONLY the current authenticated student's own application.
+ *
+ * Guarantees:
+ * - Scoped strictly to the provided userId.
+ * - Does NOT process or touch other applicants' outbox records.
+ * - Does NOT drain the global queue.
+ * - Catches and logs Google Sheets errors without throwing.
+ * - Safe for best-effort background trigger after student registration.
+ */
+export async function syncSelfApplication(userId: string): Promise<{
+  success: boolean
+  registrationId?: string
+  error?: string
+}> {
+  const { supabaseUrl, serviceRoleKey, spreadsheetId, sheetName } = getServiceConfig()
+
+  if (!serviceRoleKey) {
+    const errorMsg = 'SUPABASE_SERVICE_ROLE_KEY is required to sync application.'
+    return { success: false, error: errorMsg }
+  }
+
+  if (!spreadsheetId) {
+    const errorMsg = 'GOOGLE_SHEETS_SPREADSHEET_ID is not configured.'
+    return { success: false, error: errorMsg }
+  }
+
+  try {
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false },
+    })
+
+    const { data: application, error: appErr } = await supabase
+      .from('membership_applications')
+      .select('id, registration_id')
+      .eq('user_id', userId)
+      .single()
+
+    if (appErr || !application) {
+      return { success: false, error: `Application not found for user: ${appErr?.message || 'None'}` }
+    }
+
+    const { syncSingleApplication } = require('./sync')
+    const adapter = createGoogleSheetsAdapterFromEnv()
+    const config = { spreadsheetId, sheetName }
+
+    const result = await syncSingleApplication(supabase, adapter, config, application.id)
+    return {
+      success: result.success,
+      registrationId: result.registrationId || application.registration_id,
+      error: result.error,
+    }
+  } catch (err: unknown) {
+    const rawMsg = err instanceof Error ? err.message : String(err)
+    const sanitized = rawMsg.replace(/(?:Bearer|token|secret|key|AIza)[^\s'"]+/gi, '[REDACTED]')
+    console.error('[syncSelfApplication] Execution failure:', sanitized)
+    return {
+      success: false,
+      error: sanitized,
     }
   }
 }

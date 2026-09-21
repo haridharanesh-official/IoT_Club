@@ -163,16 +163,21 @@ async function runPhase082Tests() {
   console.log('- Col A  [Registration ID]:  ', row[0])
   console.log('- Col C  [Full Name]:        ', row[2])
   console.log('- Col W  [Membership Status]:', row[22])
+  console.log('- Col X  [Submitted At]:     ', row[23])
   console.log('- Col Y  [Reviewed At]:      ', row[24])
   console.log('- Col Z  [Reviewed By]:      ', row[25])
   console.log('- Col AA [Review Notes]:     ', row[26])
+  console.log('- Col AB [Last Synced At]:   ', row[27])
 
   assert.equal(row[0], 'IOT-2026-00008', 'Col A is IOT-2026-00008')
-  assert.equal(row[22], 'APPROVED', 'Col W is APPROVED')
-  assert.ok(row[24], 'Col Y reviewed_at is populated')
-  assert.ok(row[25], 'Col Z reviewed_by is populated')
-  assert.equal(row[26], 'Approved via Phase 08.2 automatic sync test', 'Col AA review_notes populated')
-  console.log('✓ STEP 6 PASSED: Live Google Sheet updated in place with zero duplicates.\n')
+  assert.equal(row[22], 'APPROVED', 'Col W is Membership Status (APPROVED)')
+  assert.ok(row[23], 'Col X is Submitted At (populated)')
+  assert.ok(row[24], 'Col Y is Reviewed At (populated)')
+  assert.ok(row[25], 'Col Z is Reviewed By (populated)')
+  assert.ok(row[26], 'Col AA is Review Notes (populated)')
+  assert.ok(row[27], 'Col AB is Last Synced At (populated)')
+  assert.ok(row.length <= 28, 'Canonical 28 columns (A:AB) confirmed; no Sync Status column in Google Sheet')
+  console.log('✓ STEP 6 PASSED: Live Google Sheet updated in place with canonical A:AB columns and zero duplicates.\n')
 
   // -----------------------------------------------------------
   // STEP 7: Failure Isolation & Retry Test
