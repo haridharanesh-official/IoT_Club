@@ -36,11 +36,9 @@ export const RegistrationPortal: React.FC = () => {
   const [personalEmail, setPersonalEmail] = useState("");
   const [phone, setPhone] = useState("");
 
+  const [technicalDomain, setTechnicalDomain] = useState<"Hardware" | "Software" | "Both">("Both");
   const [interests, setInterests] = useState<string[]>(["IoT", "Embedded Systems"]);
-  const [skills, setSkills] = useState<{ name: string; level: "Beginner" | "Intermediate" | "Advanced" }[]>([
-    { name: "C Programming", level: "Intermediate" },
-    { name: "Basic Electronics", level: "Beginner" },
-  ]);
+  const [skills, setSkills] = useState<{ name: string; level: "Beginner" | "Intermediate" | "Advanced" }[]>([]);
   const [newSkillName, setNewSkillName] = useState("");
   const [newSkillLevel, setNewSkillLevel] = useState<"Beginner" | "Intermediate" | "Advanced">("Beginner");
 
@@ -88,30 +86,30 @@ export const RegistrationPortal: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName.trim() || !rollNumber.trim() || !collegeEmail.trim()) {
-      setValidationError("Please fill all required personal information fields.");
+    if (!fullName.trim()) {
+      setValidationError("Please enter your full name.");
       setStep(1);
       return;
     }
 
     const newId = submitApplication({
       fullName,
-      rollNumber,
+      rollNumber: rollNumber.trim() || "Pending (1st Year)",
       department,
       year,
       section,
-      collegeEmail,
+      collegeEmail: collegeEmail.trim() || "Pending",
       personalEmail,
       phone,
-      interests,
+      interests: [technicalDomain, ...interests],
       skills,
       githubUrl,
       linkedinUrl,
       portfolioUrl,
       previousProjects,
-      whyJoin,
-      whatToLearn,
-      hoursPerWeek,
+      whyJoin: "Passionate about IoT and hands-on building",
+      whatToLearn: technicalDomain,
+      hoursPerWeek: "Flexible",
       hackathonInterest,
       researchInterest,
     });
@@ -282,20 +280,19 @@ export const RegistrationPortal: React.FC = () => {
           </div>
         </div>
       ) : (
-        /* VIEW B: 6-STEP APPLICATION WIZARD */
+        /* VIEW B: 5-STEP APPLICATION WIZARD */
         <div className="glass-card rounded-3xl p-6 sm:p-8 space-y-6">
           {/* Progress Indicator */}
           <div className="flex items-center justify-between text-xs pb-4 border-b border-slate-200">
             <span className="font-bold text-slate-900">
-              Step {step} of 6:{" "}
+              Step {step} of 5:{" "}
               {step === 1 && "Personal Details"}
               {step === 2 && "Technical Interests"}
-              {step === 3 && "Skills & Proficiency"}
+              {step === 3 && "Skills & Focus"}
               {step === 4 && "Student Profiles & Portfolios"}
-              {step === 5 && "Application Questionnaire"}
-              {step === 6 && "Review & Submit"}
+              {step === 5 && "Review & Submit"}
             </span>
-            <span className="text-emerald-700 font-semibold font-mono">{Math.round((step / 6) * 100)}% Complete</span>
+            <span className="text-emerald-700 font-semibold font-mono">{Math.round((step / 5) * 100)}% Complete</span>
           </div>
 
           {/* Wizard Step 1: Personal Details */}
@@ -315,13 +312,12 @@ export const RegistrationPortal: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-700 font-medium mb-1">Roll / Register Number *</label>
+                  <label className="block text-slate-700 font-medium mb-1">Roll / Register Number</label>
                   <input
                     type="text"
-                    required
                     value={rollNumber}
                     onChange={(e) => setRollNumber(e.target.value)}
-                    placeholder="e.g. 714023106001"
+                    placeholder="e.g. 714023106001 (Optional for 1st Year)"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:border-emerald-500 focus:bg-white transition"
                   />
                 </div>
@@ -366,13 +362,12 @@ export const RegistrationPortal: React.FC = () => {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-slate-700 font-medium mb-1">College Email *</label>
+                  <label className="block text-slate-700 font-medium mb-1">Email (College or Personal)</label>
                   <input
                     type="email"
-                    required
                     value={collegeEmail}
                     onChange={(e) => setCollegeEmail(e.target.value)}
-                    placeholder="student@srishakthi.ac.in"
+                    placeholder="student@gmail.com or @srishakthi.ac.in"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:border-emerald-500 focus:bg-white transition"
                   />
                 </div>
@@ -424,57 +419,97 @@ export const RegistrationPortal: React.FC = () => {
           {step === 3 && (
             <div className="space-y-4">
               <div>
-                <h3 className="font-bold text-slate-900 text-sm">Step 3 — Existing Technical Skills</h3>
-                <p className="text-xs text-slate-500">Add any languages or microcontrollers you have touched (beginners welcome):</p>
+                <h3 className="font-bold text-slate-900 text-sm">Step 3 — Technical Focus & Skills</h3>
+                <p className="text-xs text-slate-500">Choose your area of interest and optionally enter any technical skills you know:</p>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-2 bg-slate-50 p-3 rounded-2xl border border-slate-200">
-                <input
-                  type="text"
-                  value={newSkillName}
-                  onChange={(e) => setNewSkillName(e.target.value)}
-                  placeholder="e.g. Python, ESP32, C, KiCAD..."
-                  className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-900"
-                />
-                <select
-                  value={newSkillLevel}
-                  onChange={(e) => setNewSkillLevel(e.target.value as any)}
-                  className="bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-900"
-                >
-                  <option>Beginner</option>
-                  <option>Intermediate</option>
-                  <option>Advanced</option>
-                </select>
-                <button
-                  type="button"
-                  onClick={addSkill}
-                  className="px-4 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-xs transition"
-                >
-                  <Plus className="w-3.5 h-3.5 inline mr-1" /> Add
-                </button>
-              </div>
-
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {skills.map((sk, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-200 text-xs shadow-xs"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-slate-800">{sk.name}</span>
-                      <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-[10px] text-emerald-800 font-medium">
-                        {sk.level}
-                      </span>
-                    </div>
+              {/* Hardware / Software / Both Options */}
+              <div>
+                <label className="block text-slate-700 font-semibold text-xs mb-2">Area of Focus</label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {[
+                    { id: "Hardware", label: "Hardware", desc: "Circuits, Sensors, ESP32, Arduino, Soldering", icon: "🔌" },
+                    { id: "Software", label: "Software", desc: "Python, C/C++, Web/App, Cloud, MQTT", icon: "💻" },
+                    { id: "Both", label: "Both (Hardware & Software)", desc: "End-to-end full-stack IoT building", icon: "⚡" },
+                  ].map((opt) => (
                     <button
+                      key={opt.id}
                       type="button"
-                      onClick={() => removeSkill(idx)}
-                      className="p-1 text-slate-400 hover:text-red-500 transition"
+                      onClick={() => setTechnicalDomain(opt.id as any)}
+                      className={`p-3 rounded-2xl border text-left transition ${
+                        technicalDomain === opt.id
+                          ? "bg-emerald-50 border-emerald-400 text-emerald-900 shadow-xs ring-1 ring-emerald-400"
+                          : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                      }`}
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <div className="text-base mb-1">{opt.icon}</div>
+                      <div className="font-bold text-xs">{opt.label}</div>
+                      <div className="text-[10px] text-slate-500 mt-0.5 leading-snug">{opt.desc}</div>
                     </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-slate-100">
+                <label className="block text-slate-700 font-semibold text-xs mb-1">
+                  Specific Skills or Tools (Optional)
+                </label>
+                <p className="text-[11px] text-slate-500 mb-2">
+                  Enter any programming languages, tools, or microcontrollers you have experience with:
+                </p>
+
+                <div className="flex flex-col sm:flex-row gap-2 bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                  <input
+                    type="text"
+                    value={newSkillName}
+                    onChange={(e) => setNewSkillName(e.target.value)}
+                    placeholder="e.g. Python, ESP32, C, KiCAD..."
+                    className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-emerald-500"
+                  />
+                  <select
+                    value={newSkillLevel}
+                    onChange={(e) => setNewSkillLevel(e.target.value as any)}
+                    className="bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-900"
+                  >
+                    <option>Beginner</option>
+                    <option>Intermediate</option>
+                    <option>Advanced</option>
+                  </select>
+                  <button
+                    type="button"
+                    onClick={addSkill}
+                    className="px-4 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-xs transition"
+                  >
+                    <Plus className="w-3.5 h-3.5 inline mr-1" /> Add
+                  </button>
+                </div>
+
+                {skills.length > 0 ? (
+                  <div className="space-y-2 mt-3 max-h-40 overflow-y-auto">
+                    {skills.map((sk, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between p-2 rounded-xl bg-white border border-slate-200 text-xs shadow-xs"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-slate-800">{sk.name}</span>
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-[10px] text-emerald-800 font-medium">
+                            {sk.level}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeSkill(idx)}
+                          className="p-1 text-slate-400 hover:text-red-500 transition"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                ) : (
+                  <p className="text-[11px] text-slate-400 italic mt-2">No specific skills added yet. Beginners are fully welcomed!</p>
+                )}
               </div>
             </div>
           )}
@@ -484,7 +519,7 @@ export const RegistrationPortal: React.FC = () => {
             <div className="space-y-4 text-xs">
               <div>
                 <h3 className="font-bold text-slate-900 text-sm">Step 4 — Student Profiles (Optional)</h3>
-                <p className="text-slate-500">Share your GitHub or portfolio if you have one:</p>
+                <p className="text-slate-500">Share your GitHub or LinkedIn if you have one:</p>
               </div>
 
               <div className="space-y-3">
@@ -512,54 +547,20 @@ export const RegistrationPortal: React.FC = () => {
             </div>
           )}
 
-          {/* Wizard Step 5: Motivation */}
+          {/* Wizard Step 5: Review & Submit */}
           {step === 5 && (
             <div className="space-y-4 text-xs">
-              <div>
-                <h3 className="font-bold text-slate-900 text-sm">Step 5 — Motivation & Commitment</h3>
-                <p className="text-slate-500">Tell us a bit about your goals:</p>
-              </div>
-
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-slate-700 font-medium mb-1">Why do you want to join the IoT Club? *</label>
-                  <textarea
-                    rows={3}
-                    required
-                    value={whyJoin}
-                    onChange={(e) => setWhyJoin(e.target.value)}
-                    placeholder="Describe your motivation to build physical hardware..."
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:bg-white focus:border-emerald-500 transition"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-700 font-medium mb-1">Hours you can contribute per week?</label>
-                  <select
-                    value={hoursPerWeek}
-                    onChange={(e) => setHoursPerWeek(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:bg-white focus:border-emerald-500 transition"
-                  >
-                    <option>6-8 hrs/week</option>
-                    <option>8-10 hrs/week</option>
-                    <option>12+ hrs/week</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Wizard Step 6: Review & Submit */}
-          {step === 6 && (
-            <div className="space-y-4 text-xs">
-              <h3 className="font-bold text-slate-900 text-sm">Step 6 — Final Review</h3>
+              <h3 className="font-bold text-slate-900 text-sm">Step 5 — Final Review</h3>
               <p className="text-slate-500">Please verify your details before submitting:</p>
 
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
                 <div className="grid grid-cols-2 gap-2 text-slate-700">
                   <div>Name: <span className="font-bold text-slate-900">{fullName}</span></div>
-                  <div>Roll: <span className="font-bold text-slate-900">{rollNumber}</span></div>
+                  <div>Roll: <span className="font-bold text-slate-900">{rollNumber || "Pending (1st Year)"}</span></div>
                   <div>Dept: <span className="text-slate-800">{department}</span></div>
-                  <div>Email: <span className="text-slate-800">{collegeEmail}</span></div>
+                  <div>Email: <span className="text-slate-800">{collegeEmail || "Pending"}</span></div>
+                  <div>Focus Area: <span className="font-bold text-emerald-700">{technicalDomain}</span></div>
+                  <div>Skills: <span className="text-slate-800">{skills.length ? skills.map((s) => s.name).join(", ") : "Beginner (Learning in Club)"}</span></div>
                 </div>
               </div>
 
@@ -585,12 +586,12 @@ export const RegistrationPortal: React.FC = () => {
               <div />
             )}
 
-            {step < 6 ? (
+            {step < 5 ? (
               <button
                 type="button"
                 onClick={() => {
-                  if (step === 1 && (!fullName.trim() || !rollNumber.trim() || !collegeEmail.trim())) {
-                    setValidationError("Please fill all required personal fields.");
+                  if (step === 1 && !fullName.trim()) {
+                    setValidationError("Please enter your full name.");
                     return;
                   }
                   setValidationError("");

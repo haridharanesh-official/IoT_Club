@@ -238,39 +238,6 @@ export const PublicWebsite: React.FC = () => {
 
             {/* Right Column: 3 Pastel Glassmorphic Cards (Matching TrustVest UI!) */}
             <div className="lg:col-span-5 space-y-4">
-              {/* Card 1: Pastel Mint Green Card */}
-              <div className="glass-card-mint p-5 rounded-3xl transition hover:translate-y-[-2px]">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-700">
-                      <Cpu className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-slate-900 text-sm">Active Lab Ecosystem</h4>
-                      <p className="text-[11px] text-emerald-800">Live Hardware Telemetry</p>
-                    </div>
-                  </div>
-                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-600 text-white font-mono text-[10px] font-bold">
-                    ONLINE
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-emerald-300/50 text-center">
-                  <div>
-                    <div className="text-lg font-extrabold text-slate-900">{telemetry.temperatureC}°C</div>
-                    <div className="text-[10px] text-slate-600">Lab Temp</div>
-                  </div>
-                  <div>
-                    <div className="text-lg font-extrabold text-slate-900">{telemetry.humidityPercent}%</div>
-                    <div className="text-[10px] text-slate-600">Humidity</div>
-                  </div>
-                  <div>
-                    <div className="text-lg font-extrabold text-emerald-700">{telemetry.nodesOnline} Nodes</div>
-                    <div className="text-[10px] text-slate-600">ESP32 Active</div>
-                  </div>
-                </div>
-              </div>
-
               {/* Card 2: Pastel Warm Cream / Peach Card */}
               <div className="glass-card-peach p-5 rounded-3xl transition hover:translate-y-[-2px]">
                 <div className="flex items-center justify-between mb-2">
@@ -318,9 +285,8 @@ export const PublicWebsite: React.FC = () => {
           </div>
 
           {/* Quick Metrics Bar */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-12">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-12">
             {[
-              { label: "Active Members", val: "186+", sub: "All Departments" },
               { label: "Hardware Inventory", val: "268+", sub: "Sensors, ESP32, RPi" },
               { label: "Active Projects", val: "17", sub: "Working Prototypes" },
               { label: "Hands-on Learning", val: "100%", sub: "Practical Silicon" },

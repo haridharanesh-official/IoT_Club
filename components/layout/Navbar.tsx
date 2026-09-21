@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useIoTApp } from "@/lib/store";
 import { defaultClubConfig } from "@/lib/clubConfig";
-import { AIMentorModal } from "@/components/ai/AIMentorModal";
 import {
   Cpu,
   Compass,
@@ -14,7 +13,6 @@ import {
   Sliders,
   CheckCircle,
   Sparkles,
-  Bot,
   Menu,
   X,
   FileCheck2,
@@ -27,7 +25,6 @@ export const Navbar: React.FC = () => {
   const pathname = usePathname();
   const { currentUser, isAuthenticated, logout, student } = useIoTApp();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
 
   // Dynamic Navigation Items based on verified authentication & role
   const getNavLinks = () => {
@@ -36,10 +33,7 @@ export const Navbar: React.FC = () => {
         { label: "Home", href: "/" },
         { label: "About", href: "/#about" },
         { label: "Roadmap", href: "/#roadmap" },
-        { label: "Projects", href: "/projects" },
-        { label: "Learning Tracks", href: "/learn" },
         { label: "IPDC Cell", href: "/opportunities" },
-        { label: "Apply to Join", href: "/apply", highlight: true },
       ];
     }
 
@@ -68,16 +62,17 @@ export const Navbar: React.FC = () => {
           { label: "Hardware Inventory", href: "/lab/inventory" },
           { label: "Live Lab Telemetry", href: "/lab/live" },
           { label: "Audit Logs", href: "/admin/audit" },
+          { label: "Verify Cert", href: "/verify" },
         ];
       case "STUDENT":
       default:
         return [
           { label: "Dashboard", href: "/dashboard" },
-          { label: "Learn", href: "/learn" },
           { label: "Skill Tree", href: "/learn/skills" },
           { label: "Projects", href: "/projects" },
           { label: "IoT Lab", href: "/lab" },
           { label: "Competitions", href: "/opportunities" },
+          { label: "Verify Cert", href: "/verify" },
           { label: "Profile", href: `/member/${student.username}` },
         ];
     }
@@ -118,9 +113,7 @@ export const Navbar: React.FC = () => {
                   key={link.href}
                   href={link.href}
                   className={`px-3 py-1.5 rounded-xl text-xs font-medium transition ${
-                    link.highlight
-                      ? "bg-emerald-500 hover:bg-emerald-600 text-white font-semibold shadow-xs shadow-emerald-500/30"
-                      : isActive
+                    isActive
                       ? "bg-emerald-50 text-emerald-800 border border-emerald-200/70 font-semibold"
                       : "text-slate-600 hover:text-slate-950 hover:bg-slate-100/80"
                   }`}
@@ -133,27 +126,9 @@ export const Navbar: React.FC = () => {
 
           {/* Right Action Icons */}
           <div className="hidden lg:flex items-center gap-2.5">
-            <Link
-              href="/verify"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 hover:text-emerald-700 hover:bg-emerald-50/70 text-xs transition"
-              title="Verify Certificate Authenticity"
-            >
-              <FileCheck2 className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Verify Cert</span>
-            </Link>
-
-            <button
-              onClick={() => setIsAiModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100/70 text-xs font-medium transition shadow-xs cursor-pointer"
-            >
-              <Bot className="w-3.5 h-3.5 text-emerald-600" />
-              <span>AI Mentor</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            </button>
-
             {/* User Session or Sign In */}
             {isAuthenticated && currentUser ? (
-              <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
+              <div className="flex items-center gap-2 pl-2 border-slate-200">
                 <Link
                   href={currentUser.portalRedirect}
                   className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-slate-50 border border-slate-200 hover:bg-slate-100 transition text-xs"
@@ -180,12 +155,20 @@ export const Navbar: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <Link
-                href="/login"
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs transition"
-              >
-                <span>College Sign In</span>
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/apply"
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs shadow-xs transition"
+                >
+                  <span>Apply to Join</span>
+                </Link>
+                <Link
+                  href="/login"
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs transition"
+                >
+                  <span>Login</span>
+                </Link>
+              </div>
             )}
           </div>
 
@@ -230,21 +213,27 @@ export const Navbar: React.FC = () => {
                   </button>
                 </div>
               ) : (
-                <Link
-                  href="/login"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block w-full text-center py-2 rounded-xl bg-emerald-500 text-white font-bold"
-                >
-                  College Sign In
-                </Link>
+                <div className="flex flex-col gap-2">
+                  <Link
+                    href="/apply"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="block w-full text-center py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold transition"
+                  >
+                    Apply to Join
+                  </Link>
+                  <Link
+                    href="/login"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="block w-full text-center py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold transition"
+                  >
+                    Login
+                  </Link>
+                </div>
               )}
             </div>
           </div>
         )}
       </header>
-
-      {/* Interactive AI Mentor Modal */}
-      <AIMentorModal isOpen={isAiModalOpen} onClose={() => setIsAiModalOpen(false)} />
     </>
   );
 };

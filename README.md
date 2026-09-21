@@ -52,8 +52,9 @@ The platform is a unified fullstack **Next.js 15+ (App Router)** application wri
 7. **Certificate Public Verification (`/verify`)**:
    - Cryptographic registry verifying credentials such as `IOT-2026-ESP32-0042` with digital seal.
 
-8. **Interactive AI IoT Mentor**:
+8. **Interactive AI IoT Mentor (Multi-AI Compatible)**:
    - Diagnostic assistant answering questions on ESP32 pinouts (strapping pins), I2C address scanning (`0x23` vs `0x5C`), MQTT retain flags vs QoS, and curriculum guidance.
+   - **Model-Agnostic Architecture**: The AI integration context and project setup are designed to be seamlessly switched between multiple AI models and agents, including **Google Antigravity**, **OpenAI Codex**, **Claude**, and other LLMs. This flexibility ensures the platform can leverage the best available AI for coding assistance, hardware diagnostics, and student mentoring without vendor lock-in.
 
 ---
 

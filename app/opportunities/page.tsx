@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 
 export default function OpportunitiesPage() {
-  const { student, hackathons, updateHackathonStatus } = useIoTApp();
+  const { currentUser, isAuthenticated, hackathons, updateHackathonStatus } = useIoTApp();
   const [selectedFilter, setSelectedFilter] = useState<string>("ALL");
 
   const filteredHackathons = hackathons.filter(
@@ -28,34 +28,36 @@ export default function OpportunitiesPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 text-slate-800">
-      {/* 1. Mission Control Banner (Direct match to Image 2) */}
-      <div className="p-6 rounded-2xl bg-gradient-to-r from-[#042f2e] via-[#064e3b] to-[#04362b] border border-emerald-900/50 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm text-white">
-        <div>
-          <span className="text-[10px] font-mono tracking-wider uppercase text-emerald-400 font-bold block mb-1">
-            MISSION CONTROL
-          </span>
-          <div className="flex flex-wrap items-center gap-2.5">
-            <h1 className="text-2xl font-extrabold text-white">Welcome back, {student.name.split(" ")[0]} 👋</h1>
-            <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 text-xs font-medium">
-              ✓ Approved
+      {/* 1. Mission Control Banner (Displayed ONLY after login) */}
+      {isAuthenticated && currentUser && (
+        <div className="p-6 rounded-2xl bg-gradient-to-r from-[#042f2e] via-[#064e3b] to-[#04362b] border border-emerald-900/50 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm text-white">
+          <div>
+            <span className="text-[10px] font-mono tracking-wider uppercase text-emerald-400 font-bold block mb-1">
+              MISSION CONTROL
             </span>
-            <span className="px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-400/40 text-xs font-mono font-medium">
-              Score: 9/10
-            </span>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h1 className="text-2xl font-extrabold text-white">Welcome back, {currentUser.name.split(" ")[0]} 👋</h1>
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 text-xs font-medium">
+                ✓ Approved
+              </span>
+              <span className="px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-400/40 text-xs font-mono font-medium">
+                Score: 9/10
+              </span>
+            </div>
+            <p className="text-xs text-slate-300 mt-1 font-mono">
+              CodeVerse • MEDTECH / BIOTECH / HEALTHTECH • SIET Hackathons
+            </p>
           </div>
-          <p className="text-xs text-slate-300 mt-1 font-mono">
-            CodeVerse • MEDTECH / BIOTECH / HEALTHTECH • SIET Hackathons
-          </p>
-        </div>
 
-        <Link
-          href="/projects/teams"
-          className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-xs shrink-0"
-        >
-          <Users className="w-3.5 h-3.5" />
-          <span>Find Teammates</span>
-        </Link>
-      </div>
+          <Link
+            href="/projects/teams"
+            className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-xs shrink-0"
+          >
+            <Users className="w-3.5 h-3.5" />
+            <span>Find Teammates</span>
+          </Link>
+        </div>
+      )}
 
       {/* Innovation & Hackathon Preparation Banner */}
       <div className="p-6 rounded-3xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">

@@ -31,8 +31,8 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
 
   // Login form state
-  const [email, setEmail] = useState("hari.23ec@siet.ac.in");
-  const [password, setPassword] = useState("student123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -300,28 +300,27 @@ export default function LoginPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-slate-700 font-semibold mb-1">
-                      College Email ID *
+                      Email Address *
                     </label>
                     <input
                       type="email"
                       required
                       value={regEmail}
                       onChange={(e) => setRegEmail(e.target.value)}
-                      placeholder="ramesh.23ec@siet.ac.in"
+                      placeholder="yourname@gmail.com or @siet.ac.in"
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-900 focus:outline-none focus:border-emerald-500 focus:bg-white font-mono text-xs"
                     />
                   </div>
 
                   <div>
                     <label className="block text-slate-700 font-semibold mb-1">
-                      Roll Number *
+                      Roll Number (Optional)
                     </label>
                     <input
                       type="text"
-                      required
                       value={regRoll}
                       onChange={(e) => setRegRoll(e.target.value)}
-                      placeholder="e.g. 727723EUIT099"
+                      placeholder="e.g. 727723EUIT099 (Optional for 1st Year)"
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-900 focus:outline-none focus:border-emerald-500 focus:bg-white font-mono text-xs"
                     />
                   </div>

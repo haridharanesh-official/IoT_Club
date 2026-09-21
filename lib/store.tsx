@@ -323,10 +323,10 @@ export function IoTAppProvider({ children }: { children: React.ReactNode }) {
       department: string;
     }) => {
       const cleanEmail = data.email.trim().toLowerCase();
-      if (!cleanEmail.includes("@") || (!cleanEmail.endsWith(".siet.ac.in") && !cleanEmail.endsWith("@siet.ac.in"))) {
+      if (!cleanEmail.includes("@") || !cleanEmail.includes(".")) {
         return {
           success: false,
-          error: "Please use your official Sri Shakthi Institute of Engineering and Technology email (@siet.ac.in).",
+          error: "Please enter a valid email address.",
         };
       }
 
@@ -334,7 +334,7 @@ export function IoTAppProvider({ children }: { children: React.ReactNode }) {
       if (existing) {
         return {
           success: false,
-          error: "An account with this college email already exists. Please sign in.",
+          error: "An account with this email already exists. Please sign in.",
         };
       }
 
@@ -344,7 +344,7 @@ export function IoTAppProvider({ children }: { children: React.ReactNode }) {
         email: cleanEmail,
         role: "STUDENT",
         department: data.department.trim() || "Information Technology",
-        rollNumber: data.rollNumber.trim(),
+        rollNumber: data.rollNumber.trim() || "Pending (1st Year)",
         designation: "Student Member (Level 1 Novice)",
         portalRedirect: "/dashboard",
       };
