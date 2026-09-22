@@ -21,7 +21,7 @@ export default function ForgotPasswordPage() {
     try {
       const { error: requestError } = await createClient().auth.resetPasswordForEmail(normalizeEmail(email))
       if (requestError?.status === 0) setError('Authentication is temporarily unavailable. Please try again.')
-      else setMessage('If this account exists, a password reset link has been sent. Check Mailpit during local testing.')
+      else setMessage('If this account exists, a password reset link has been sent. Please check your inbox.')
     } catch {
       setError('Authentication is temporarily unavailable. Please try again.')
     } finally { submitting.current = false }

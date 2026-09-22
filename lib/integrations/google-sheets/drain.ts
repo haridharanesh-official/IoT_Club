@@ -34,7 +34,7 @@ function getServiceConfig() {
     }
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || localEnv.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321'
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || localEnv.NEXT_PUBLIC_SUPABASE_URL || ''
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || localEnv.SUPABASE_SERVICE_ROLE_KEY
   const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID || localEnv.GOOGLE_SHEETS_SPREADSHEET_ID
   const sheetName = process.env.GOOGLE_SHEETS_REGISTRATION_TAB || localEnv.GOOGLE_SHEETS_REGISTRATION_TAB || 'Registrations'

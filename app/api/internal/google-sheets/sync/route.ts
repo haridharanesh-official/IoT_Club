@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     const authHeader = request.headers.get('authorization')
     const internalSheetsSyncSecret = getInternalSheetsSyncSecret()
     const serviceRoleKey = getServiceRoleKey()
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321'
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || ''
 
     let authorized = false

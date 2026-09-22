@@ -440,7 +440,7 @@ export default function RegistrationForm({
         setWaitingVerification(false)
         setStep(5)
       } else {
-        setError('Email not yet confirmed. Please click the link sent to your inbox or Mailpit, then try again.')
+        setError('Email not yet confirmed. Please click the verification link sent to your inbox, then try again.')
       }
     } catch {
       setError('Unable to check confirmation status. Please try again.')
@@ -1103,7 +1103,7 @@ export default function RegistrationForm({
                   </div>
                   <p className="text-xs text-amber-800 leading-relaxed">
                     We sent a confirmation link to <strong>{form.account_email || form.college_email}</strong>.
-                    Please check your inbox (or Mailpit for local testing) and click the verification link.
+                    Please check your inbox and click the verification link.
                   </p>
                   <p className="text-[11px] text-slate-500">
                     Once verified, click the button below to continue to the final review step.
