@@ -1,5 +1,5 @@
 import { createClient } from '../../utils/supabase/server'
-import type { SupabaseClient } from '@supabase/supabase-js'
+import { createClient as createServiceClient, type SupabaseClient } from '@supabase/supabase-js'
 
 export interface StudentProfile {
   userId: string
@@ -33,7 +33,7 @@ export interface StudentSkill {
 export interface StudentApplicationSummary {
   id: string
   registrationId: string
-  reasonForJoining: string
+  reasonForJoining: string | null
   skillLevel: string
   previousIotExperience: boolean
   experienceDescription: string | null
@@ -406,59 +406,40 @@ export async function getStudentDashboardData(
 }
 
 /**
- * Fetch sanitized public member profile for /member/[username].
- * Looks up by username (exact/lowercase), register_number, or registration_id.
+ * Fetch only explicitly selected public fields for /member/[username].
+ * The view is server-only: browsers must never query its historical private columns.
  */
 export async function getPublicMemberProfile(
   identifier: string,
   customClient?: SupabaseClient
 ): Promise<PublicMemberProfile | null> {
-  const supabase = customClient || (await createClient())
-  const cleanId = identifier.trim()
+  const cleanId = identifier.trim().toLowerCase()
+  if (!/^[a-z0-9_-]{3,40}$/.test(cleanId)) return null
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!customClient && (!url || !serviceKey)) return null
+  const supabase = customClient || createServiceClient(url!, serviceKey!, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
 
   // Look up in public_member_profiles view
   const { data: member, error } = await supabase
     .from('public_member_profiles')
-    .select('*')
-    .or(`username.eq.${cleanId.toLowerCase()},register_number.ilike.${cleanId},registration_id.ilike.${cleanId}`)
+    .select('user_id,full_name,username,department,degree_programme,year_of_study,section,batch,headline,bio,github_url,linkedin_url,portfolio_url,created_at')
+    .eq('username', cleanId)
     .maybeSingle()
 
   if (error || !member) {
     return null
   }
 
-  // Fetch public skills
-  const { data: skillsData } = await supabase
-    .from('student_skills')
-    .select('category, skill, level')
-    .eq('user_id', member.user_id)
-
-  const skills: StudentSkill[] = (skillsData || []).map((s) => ({
-    category: s.category as StudentSkill['category'],
-    skill: s.skill,
-    level: s.level as StudentSkill['level'],
-  }))
-
-  // Fetch public interests
-  const { data: interestsData } = await supabase
-    .from('student_interests')
-    .select('interest')
-    .eq('user_id', member.user_id)
-
-  const interests = (interestsData || []).map((i) => i.interest)
-
-  // Fetch public projects
-  const { data: ownedProjects } = await supabase
-    .from('projects')
-    .select('id, title, description, status')
-    .eq('owner_id', member.user_id)
-
   return {
     userId: member.user_id,
     fullName: member.full_name || 'Club Member',
     username: member.username,
-    registrationId: member.registration_id,
-    registerNumber: member.register_number,
+    registrationId: null,
+    registerNumber: null,
     department: member.department,
     degreeProgramme: member.degree_programme,
     yearOfStudy: member.year_of_study,
@@ -470,8 +451,8 @@ export async function getPublicMemberProfile(
     linkedinUrl: member.linkedin_url,
     portfolioUrl: member.portfolio_url,
     createdAt: member.created_at,
-    skills,
-    interests,
-    projects: ownedProjects || [],
+    skills: [],
+    interests: [],
+    projects: [],
   }
 }

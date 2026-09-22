@@ -150,12 +150,12 @@ export async function POST(request: NextRequest) {
     const summary = await drainGoogleSheetsOutbox(batchSize)
 
     return NextResponse.json({
-      ok: true,
+      ok: !summary.error && summary.failed === 0,
       totalProcessed: summary.totalProcessed,
       succeeded: summary.succeeded,
       failed: summary.failed,
       error: summary.error,
-    })
+    }, { status: summary.error || summary.failed > 0 ? 503 : 200 })
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Internal error processing outbox'
     const sanitized = msg.replace(/(?:Bearer|token|secret|key|AIza)[^\s'"]+/gi, '[REDACTED]')
@@ -165,4 +165,28 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+// Scheduled requests have a separate credential and cannot use student or
+// administrator sessions as a substitute for the worker secret.
+export async function GET(request: NextRequest) {
+  const cronSecret = process.env.CRON_SECRET
+  if (!cronSecret) {
+    return NextResponse.json({ ok: false, error: 'Cron is not configured.' }, { status: 503 })
+  }
+  if (request.headers.get('authorization') !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ ok: false, error: 'Unauthorized.' }, { status: 401 })
+  }
+
+  const summary = await drainGoogleSheetsOutbox(10)
+  return NextResponse.json({
+    ok: !summary.error && summary.failed === 0,
+    totalProcessed: summary.totalProcessed,
+    succeeded: summary.succeeded,
+    failed: summary.failed,
+    error: summary.error,
+  }, {
+    status: summary.error || summary.failed > 0 ? 503 : 200,
+    headers: { 'Cache-Control': 'private, no-store' },
+  })
 }

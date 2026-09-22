@@ -1,5 +1,5 @@
-import { ProjectHub } from "@/components/projects/ProjectHub";
+import { UnavailableFeature } from '@/components/public/UnavailableFeature'
 
-export default function ProjectsPage() {
-  return <ProjectHub />;
+export default function Page() {
+  return <UnavailableFeature title="Public projects" detail="No published project records are available from the club database yet." />
 }

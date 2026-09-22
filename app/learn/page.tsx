@@ -1,5 +1,5 @@
-import { LearningTracks } from "@/components/lms/LearningTracks";
+import { UnavailableFeature } from '@/components/public/UnavailableFeature'
 
-export default function LearnPage() {
-  return <LearningTracks />;
+export default function Page() {
+  return <UnavailableFeature title="Learning portal" detail="Learning assignments and progress are unavailable until persistent, authorized records are connected." />
 }

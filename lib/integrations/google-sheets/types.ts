@@ -55,7 +55,7 @@ export interface FullApplicationData {
     id: string
     user_id: string
     registration_id: string
-    reason_for_joining: string
+    reason_for_joining: string | null
     skill_level: string
     previous_iot_experience: boolean
     experience_description: string | null
@@ -80,8 +80,8 @@ export interface FullApplicationData {
     section: string | null
     batch: string
     mobile_number: string
-    personal_email: string
-    college_email: string
+    personal_email: string | null
+    college_email: string | null
     gender: string | null
     github_url: string | null
     linkedin_url: string | null

@@ -1,0 +1,278 @@
+-- Simplify registration contact details, remove the free-text joining reason,
+-- and keep the database interest allowlist aligned with the registration UI.
+
+alter table public.membership_applications
+  alter column reason_for_joining drop not null;
+
+alter table public.student_interests
+  drop constraint if exists student_interests_interest_check;
+
+alter table public.student_interests
+  add constraint student_interests_interest_check
+  check (interest in (
+    'Internet of Things',
+    'Embedded Systems',
+    'Robotics',
+    'Sensors & Actuators',
+    'Wireless & LoRa',
+    'Cloud & AIoT',
+    'Cybersecurity',
+    'Artificial Intelligence',
+    'Edge AI',
+    'Automation',
+    'Electronics',
+    'Cloud & Networking',
+    'Computer Vision'
+  ));
+
+create or replace function public.submit_membership_application(payload jsonb)
+returns text
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  actor_id uuid := (select auth.uid());
+  actor_email text;
+  registration_id text;
+  interest text;
+  skill_item jsonb;
+  skill_category public.skill_category;
+  skill_name text;
+  skill_level public.skill_level;
+  birth_date date;
+  study_year integer;
+  study_semester integer;
+  college_email_value text;
+  personal_email_value text;
+begin
+  if actor_id is null then
+    raise exception 'authentication required' using errcode = '28000';
+  end if;
+
+  if payload is null or jsonb_typeof(payload) <> 'object' then
+    raise exception 'invalid application';
+  end if;
+
+  select email into actor_email
+  from auth.users
+  where id = actor_id and email_confirmed_at is not null;
+
+  if actor_email is null then
+    raise exception 'confirmed email required';
+  end if;
+
+  if not exists (
+    select 1
+    from public.profiles
+    where id = actor_id
+      and role = 'STUDENT'
+      and membership_status = 'PENDING'
+  ) then
+    raise exception 'registration unavailable';
+  end if;
+
+  if exists (
+    select 1
+    from public.membership_applications
+    where user_id = actor_id
+  ) then
+    raise exception 'application already submitted' using errcode = '23505';
+  end if;
+
+  college_email_value := nullif(lower(trim(payload->>'college_email')), '');
+  personal_email_value := nullif(lower(trim(payload->>'personal_email')), '');
+
+  if college_email_value is null and personal_email_value is null then
+    raise exception 'email required' using errcode = '22023';
+  end if;
+
+  if college_email_value is not null and (
+      length(college_email_value) > 254
+      or college_email_value !~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$'
+    ) then
+    raise exception 'invalid college email' using errcode = '22023';
+  end if;
+
+  if personal_email_value is not null and (
+      length(personal_email_value) > 254
+      or personal_email_value !~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$'
+    ) then
+    raise exception 'invalid personal email' using errcode = '22023';
+  end if;
+
+  if nullif(trim(payload->>'full_name'), '') is null
+    or length(payload->>'full_name') > 160
+    or nullif(trim(payload->>'mobile_number'), '') is null
+    or (payload->>'mobile_number') !~ '^[0-9+() -]{7,20}$'
+    or nullif(trim(payload->>'register_number'), '') is null
+    or length(payload->>'register_number') > 40
+    or nullif(trim(payload->>'department'), '') is null
+    or length(payload->>'department') > 120
+    or nullif(trim(payload->>'degree_programme'), '') is null
+    or length(payload->>'degree_programme') > 120
+    or nullif(trim(payload->>'batch'), '') is null
+    or length(payload->>'batch') > 30
+    or length(coalesce(payload->>'reason_for_joining', '')) > 2000
+    or payload->>'consent_accuracy' is distinct from 'true'
+    or payload->>'consent_rules' is distinct from 'true'
+    or payload->>'consent_data_use' is distinct from 'true'
+  then
+    raise exception 'invalid application';
+  end if;
+
+  begin
+    birth_date := (payload->>'date_of_birth')::date;
+    study_year := (payload->>'year_of_study')::integer;
+    study_semester := (payload->>'semester')::integer;
+    skill_level := (payload->>'skill_level')::public.skill_level;
+  exception when others then
+    raise exception 'invalid application';
+  end;
+
+  if birth_date is null
+    or birth_date > current_date
+    or birth_date < date '1900-01-01'
+    or study_year is null
+    or study_year not between 1 and 6
+    or study_semester is null
+    or study_semester not between 1 and 12
+    or skill_level is null
+    or payload->>'previous_iot_experience' is null
+    or payload->>'previous_iot_experience' not in ('true','false')
+    or (
+      payload->>'previous_iot_experience' = 'true'
+      and nullif(trim(payload->>'experience_description'), '') is null
+    )
+  then
+    raise exception 'invalid application';
+  end if;
+
+  if payload->'interests' is null
+    or jsonb_typeof(payload->'interests') <> 'array'
+    or jsonb_array_length(payload->'interests') = 0
+    or jsonb_array_length(payload->'interests') > 10
+    or (
+      payload ? 'skills'
+      and (
+        jsonb_typeof(payload->'skills') <> 'array'
+        or jsonb_array_length(payload->'skills') > 30
+      )
+    )
+  then
+    raise exception 'invalid application';
+  end if;
+
+  registration_id := 'IOT-' || extract(year from current_date)::text || '-'
+    || lpad(nextval('public.registration_number_seq')::text, 5, '0');
+
+  update public.profiles
+  set full_name = trim(payload->>'full_name')
+  where id = actor_id;
+
+  insert into public.student_profiles (
+    user_id,
+    registration_id,
+    date_of_birth,
+    gender,
+    mobile_number,
+    personal_email,
+    college_email,
+    register_number,
+    department,
+    degree_programme,
+    year_of_study,
+    semester,
+    section,
+    batch,
+    github_url,
+    linkedin_url,
+    portfolio_url
+  ) values (
+    actor_id,
+    registration_id,
+    birth_date,
+    nullif(trim(payload->>'gender'), ''),
+    trim(payload->>'mobile_number'),
+    personal_email_value,
+    college_email_value,
+    trim(payload->>'register_number'),
+    trim(payload->>'department'),
+    trim(payload->>'degree_programme'),
+    study_year,
+    study_semester,
+    nullif(trim(payload->>'section'), ''),
+    trim(payload->>'batch'),
+    nullif(trim(payload->>'github_url'), ''),
+    nullif(trim(payload->>'linkedin_url'), ''),
+    nullif(trim(payload->>'portfolio_url'), '')
+  );
+
+  insert into public.membership_applications (
+    user_id,
+    registration_id,
+    reason_for_joining,
+    skill_level,
+    previous_iot_experience,
+    experience_description,
+    consented_accuracy_at,
+    consented_rules_at,
+    consented_data_use_at
+  ) values (
+    actor_id,
+    registration_id,
+    nullif(trim(payload->>'reason_for_joining'), ''),
+    skill_level,
+    (payload->>'previous_iot_experience')::boolean,
+    case
+      when (payload->>'previous_iot_experience')::boolean
+        then nullif(trim(payload->>'experience_description'), '')
+      else null
+    end,
+    now(),
+    now(),
+    now()
+  );
+
+  for interest in
+    select value from jsonb_array_elements_text(payload->'interests')
+  loop
+    insert into public.student_interests (user_id, interest)
+    values (actor_id, interest);
+  end loop;
+
+  for skill_item in
+    select value from jsonb_array_elements(coalesce(payload->'skills', '[]'::jsonb))
+  loop
+    skill_category := (skill_item->>'category')::public.skill_category;
+    skill_name := skill_item->>'skill';
+
+    insert into public.student_skills (user_id, category, skill, level)
+    values (
+      actor_id,
+      skill_category,
+      skill_name,
+      (skill_item->>'level')::public.skill_level
+    );
+  end loop;
+
+  insert into public.audit_logs (
+    actor_user_id,
+    action,
+    entity_type,
+    entity_id,
+    new_data
+  ) values (
+    actor_id,
+    'membership_application_submitted',
+    'membership_application',
+    actor_id,
+    jsonb_build_object('registration_id', registration_id, 'status', 'PENDING')
+  );
+
+  return registration_id;
+end;
+$$;
+
+revoke all on function public.submit_membership_application(jsonb) from public, anon;
+grant execute on function public.submit_membership_application(jsonb) to authenticated;

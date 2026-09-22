@@ -116,6 +116,7 @@ export async function drainGoogleSheetsOutbox(batchSize = 10): Promise<BatchSync
  * - Safe for best-effort background trigger after student registration.
  */
 export async function syncSelfApplication(userId: string): Promise<{
+  state: 'already_synced' | 'claimed_elsewhere' | 'synced' | 'failed'
   success: boolean
   registrationId?: string
   error?: string
@@ -124,12 +125,12 @@ export async function syncSelfApplication(userId: string): Promise<{
 
   if (!serviceRoleKey) {
     const errorMsg = 'SUPABASE_SERVICE_ROLE_KEY is required to sync application.'
-    return { success: false, error: errorMsg }
+    return { state: 'failed', success: false, error: errorMsg }
   }
 
   if (!spreadsheetId) {
     const errorMsg = 'GOOGLE_SHEETS_SPREADSHEET_ID is not configured.'
-    return { success: false, error: errorMsg }
+    return { state: 'failed', success: false, error: errorMsg }
   }
 
   try {
@@ -144,7 +145,7 @@ export async function syncSelfApplication(userId: string): Promise<{
       .single()
 
     if (appErr || !application) {
-      return { success: false, error: `Application not found for user: ${appErr?.message || 'None'}` }
+      return { state: 'failed', success: false, error: `Application not found for user: ${appErr?.message || 'None'}` }
     }
 
     // Concurrency guard: atomically claim job from PENDING/FAILED to SYNCING
@@ -160,9 +161,24 @@ export async function syncSelfApplication(userId: string): Promise<{
       .in('sync_status', ['PENDING', 'FAILED'])
       .select('id')
 
-    if (claimErr || !claimedRows || claimedRows.length === 0) {
-      // Job is already claimed by background worker or already SYNCED
-      return { success: true, registrationId: application.registration_id }
+    if (claimErr) {
+      return { state: 'failed', success: false, error: 'Unable to claim the Sheets sync job.' }
+    }
+    if (!claimedRows || claimedRows.length === 0) {
+      const { data: job, error: statusErr } = await supabase
+        .from('sheet_sync_logs')
+        .select('sync_status')
+        .eq('entity_type', 'MEMBERSHIP_APPLICATION')
+        .eq('entity_id', application.id)
+        .maybeSingle()
+      if (statusErr || !job) {
+        return { state: 'failed', success: false, error: 'Sheets sync job is unavailable.' }
+      }
+      return {
+        state: job.sync_status === 'SYNCED' ? 'already_synced' : 'claimed_elsewhere',
+        success: job.sync_status === 'SYNCED',
+        registrationId: application.registration_id,
+      }
     }
 
     const adapter = createGoogleSheetsAdapterFromEnv()
@@ -170,6 +186,7 @@ export async function syncSelfApplication(userId: string): Promise<{
 
     const result = await syncSingleApplication(supabase, adapter, config, application.id)
     return {
+      state: result.success ? 'synced' : 'failed',
       success: result.success,
       registrationId: result.registrationId || application.registration_id,
       error: result.error,
@@ -179,6 +196,7 @@ export async function syncSelfApplication(userId: string): Promise<{
     const sanitized = rawMsg.replace(/(?:Bearer|token|secret|key|AIza)[^\s'"]+/gi, '[REDACTED]')
     console.error('[syncSelfApplication] Execution failure:', sanitized)
     return {
+      state: 'failed',
       success: false,
       error: sanitized,
     }

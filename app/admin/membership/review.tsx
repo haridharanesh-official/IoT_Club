@@ -552,9 +552,11 @@ export default function MembershipReview({
                 </div>
 
                 {/* Card Summary Line */}
-                <p className="text-xs text-slate-600 line-clamp-1 bg-slate-50 rounded-xl p-2.5 border border-slate-100">
-                  <strong className="text-slate-700">Reason:</strong> {app.reasonForJoining}
-                </p>
+                {app.reasonForJoining && (
+                  <p className="text-xs text-slate-600 line-clamp-1 bg-slate-50 rounded-xl p-2.5 border border-slate-100">
+                    <strong className="text-slate-700">Reason:</strong> {app.reasonForJoining}
+                  </p>
+                )}
 
                 {/* Bottom Card Action Bar */}
                 <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-100">
@@ -720,12 +722,8 @@ export default function MembershipReview({
                   </h3>
                   <div className="space-y-1.5">
                     <div className="flex justify-between">
-                      <span className="text-slate-500">College Email:</span>
-                      <span className="font-mono text-slate-800">{selectedApp.collegeEmail || '—'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Personal Email:</span>
-                      <span className="font-mono text-slate-800">{selectedApp.personalEmail || '—'}</span>
+                      <span className="text-slate-500">Email Address:</span>
+                      <span className="font-mono text-slate-800">{selectedApp.contactEmail || '—'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-500">Mobile Number:</span>
@@ -780,12 +778,14 @@ export default function MembershipReview({
                   <span>IoT Background & Statement</span>
                 </h3>
 
-                <div>
-                  <span className="text-slate-500 block font-medium">Reason for Joining:</span>
-                  <p className="text-slate-800 mt-1 bg-white p-3 rounded-xl border border-slate-200/70">
-                    {selectedApp.reasonForJoining}
-                  </p>
-                </div>
+                {selectedApp.reasonForJoining && (
+                  <div>
+                    <span className="text-slate-500 block font-medium">Reason for Joining:</span>
+                    <p className="text-slate-800 mt-1 bg-white p-3 rounded-xl border border-slate-200/70">
+                      {selectedApp.reasonForJoining}
+                    </p>
+                  </div>
+                )}
 
                 <div className="grid sm:grid-cols-2 gap-3 pt-1">
                   <div>

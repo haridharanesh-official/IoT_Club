@@ -9,7 +9,6 @@ export type UserRole =
   | "CLUB_ADMIN"
   | "SUPER_ADMIN";
 
-export type DemoRole = "public" | "applicant" | "student" | "teacher" | "admin";
 
 export type AuthRole = "STUDENT" | "TEACHER" | "CLUB_LEAD" | "ADMIN" | "GUEST";
 
@@ -39,17 +38,6 @@ export interface ClubConfig {
   logoText: string;
   department: string;
   description: string;
-  footerDescription?: string;
-  primaryContact: string;
-  email: string;
-  address: string;
-  githubOrg: string;
-  socialLinks: {
-    github: string;
-    linkedin: string;
-    discord: string;
-    youtube?: string;
-  };
 }
 
 export interface UserSkill {

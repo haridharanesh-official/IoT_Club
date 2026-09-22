@@ -90,11 +90,12 @@ export async function POST(request: NextRequest) {
     const result = await syncSelfApplication(userId)
 
     return NextResponse.json({
-      ok: true,
-      synced: result.success,
+      ok: result.state !== 'failed',
+      state: result.state,
+      synced: result.state === 'synced' || result.state === 'already_synced',
       registrationId: result.registrationId,
       error: result.error,
-    })
+    }, { status: result.state === 'failed' ? 503 : result.state === 'claimed_elsewhere' ? 202 : 200 })
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Internal error syncing self application'
     const sanitized = msg.replace(/(?:Bearer|token|secret|key|AIza)[^\s'"]+/gi, '[REDACTED]')

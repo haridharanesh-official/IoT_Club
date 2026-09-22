@@ -2,7 +2,6 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { createClient } from '@supabase/supabase-js'
 import {
-  FakeGoogleSheetsAdapter,
   REGISTRATIONS_SHEET_HEADERS,
   REGISTRATIONS_SHEET_NAME,
   mapApplicationToSheetRow,
@@ -11,6 +10,7 @@ import {
   syncSingleApplication,
   processSheetSyncOutbox,
 } from '../lib/integrations/google-sheets/index'
+import { FakeGoogleSheetsAdapter } from './fixtures/fake-google-sheets-adapter'
 
 const env = Object.fromEntries(
   readFileSync('.env.local', 'utf8')

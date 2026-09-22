@@ -20,7 +20,7 @@ export interface HydratedAdminApplication {
   skillLevel: string
   previousIotExperience: boolean
   experienceDescription: string | null
-  reasonForJoining: string
+  reasonForJoining: string | null
 
   // Student Profile
   userId: string
@@ -30,6 +30,7 @@ export interface HydratedAdminApplication {
   mobileNumber: string | null
   personalEmail: string | null
   collegeEmail: string | null
+  contactEmail: string | null
   registerNumber: string | null
   department: string | null
   degreeProgramme: string | null
@@ -334,7 +335,8 @@ export async function getAdminMembershipApplications(
       gender: student?.gender || null,
       mobileNumber: student?.mobile_number || null,
       personalEmail: student?.personal_email || null,
-      collegeEmail: student?.college_email || profile?.email || null,
+      collegeEmail: student?.college_email || null,
+      contactEmail: profile?.email || student?.college_email || student?.personal_email || null,
       registerNumber: student?.register_number || null,
       department: student?.department || null,
       degreeProgramme: student?.degree_programme || null,

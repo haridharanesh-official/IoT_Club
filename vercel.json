@@ -1,0 +1,5 @@
+{
+  "crons": [
+    { "path": "/api/internal/google-sheets/sync", "schedule": "*/5 * * * *" }
+  ]
+}

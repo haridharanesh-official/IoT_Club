@@ -1,5 +1,5 @@
-import { AdminPortal } from "@/components/admin/AdminPortal";
+import { redirect } from 'next/navigation'
 
-export default function AuditAdminPage() {
-  return <AdminPortal />;
+export default function AdminAuditPage() {
+  redirect('/admin/membership')
 }

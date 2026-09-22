@@ -2,8 +2,6 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { useIoTApp } from "@/lib/store";
-import { AIMentorModal } from "@/components/ai/AIMentorModal";
 import type { StudentDashboardData, StudentProfile } from "@/lib/student/dashboard";
 import {
   GraduationCap,
@@ -36,40 +34,11 @@ import {
 import { GithubIcon, LinkedinIcon } from "@/components/icons/SocialIcons";
 
 interface StudentDashboardProps {
-  initialData?: StudentDashboardData;
+  initialData: StudentDashboardData;
 }
 
 export const StudentDashboard: React.FC<StudentDashboardProps> = ({ initialData }) => {
-  const store = useIoTApp();
-
-  // If initialData provided, use real server data; otherwise fallback to store
-  const [profile, setProfile] = useState<StudentProfile>(() => {
-    if (initialData?.profile) return initialData.profile;
-    return {
-      userId: store.student.id,
-      fullName: store.student.name,
-      email: store.student.collegeEmail,
-      role: "STUDENT",
-      membershipStatus: "APPROVED",
-      registrationId: "IOT-2026-00008",
-      registerNumber: store.student.rollNumber,
-      department: store.student.department,
-      degreeProgramme: "B.Tech",
-      yearOfStudy: 3,
-      semester: 5,
-      section: store.student.section,
-      batch: "2024-2028",
-      username: store.student.username || null,
-      headline: store.student.headline || null,
-      bio: store.student.bio || null,
-      githubUrl: store.student.githubUrl || null,
-      linkedinUrl: store.student.linkedinUrl || null,
-      portfolioUrl: store.student.portfolioUrl || null,
-      createdAt: new Date().toISOString(),
-    };
-  });
-
-  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+  const [profile, setProfile] = useState<StudentProfile>(initialData.profile);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
@@ -157,20 +126,14 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ initialData 
         .join("")
     : "ST";
 
-  const publicProfileSlug = profile.username || profile.registerNumber || profile.registrationId || "me";
+  const publicProfileSlug = profile.username;
 
-  const projects = initialData?.projects || [];
-  const learningProgress = initialData?.learningProgress || [];
-  const skills = initialData?.skills || [];
-  const interests = initialData?.interests || [];
-  const upcomingEvents = initialData?.upcomingEvents || [];
-  const metrics = initialData?.metrics || {
-    projectsCount: projects.length,
-    coursesCount: learningProgress.length,
-    certificationsCount: 0,
-    eventsCount: upcomingEvents.length,
-    notificationsCount: 0,
-  };
+  const projects = initialData.projects;
+  const learningProgress = initialData.learningProgress;
+  const skills = initialData.skills;
+  const interests = initialData.interests;
+  const upcomingEvents = initialData.upcomingEvents;
+  const metrics = initialData.metrics;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 text-slate-800">
@@ -216,21 +179,13 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ initialData 
               <span>Edit Profile</span>
             </button>
 
-            <Link
-              href={`/member/${publicProfileSlug}`}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold shadow-xs transition"
-            >
-              <User className="w-3.5 h-3.5 text-slate-500" />
-              <span>Public Portfolio</span>
-            </Link>
-
-            <button
-              onClick={() => setIsAiModalOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold shadow-xs transition cursor-pointer"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>AI Lab Mentor</span>
-            </button>
+            {publicProfileSlug && (
+              <Link href={`/member/${publicProfileSlug}`}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold shadow-xs transition">
+                <User className="w-3.5 h-3.5 text-slate-500" />
+                <span>Public Portfolio</span>
+              </Link>
+            )}
           </div>
         </div>
 
@@ -718,7 +673,6 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ initialData 
       )}
 
       {/* AI Mentor Modal */}
-      <AIMentorModal isOpen={isAiModalOpen} onClose={() => setIsAiModalOpen(false)} />
     </div>
   );
 };
