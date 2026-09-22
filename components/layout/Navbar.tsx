@@ -178,7 +178,7 @@ export const Navbar: React.FC = () => {
             ) : (
               <div className="flex items-center gap-2">
                 <Link
-                  href="/apply"
+                  href="/register"
                   className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs shadow-xs transition"
                 >
                   <span>Apply to Join</span>
@@ -238,7 +238,7 @@ export const Navbar: React.FC = () => {
               ) : (
                 <div className="flex flex-col gap-2">
                   <Link
-                    href="/apply"
+                    href="/register"
                     onClick={() => setMobileMenuOpen(false)}
                     className="block w-full text-center py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold transition"
                   >

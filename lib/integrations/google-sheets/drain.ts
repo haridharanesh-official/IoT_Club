@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { createGoogleSheetsAdapterFromEnv } from './client'
-import { processSheetSyncOutbox } from './sync'
+import { processSheetSyncOutbox, syncSingleApplication } from './sync'
 import type { BatchSyncSummary } from './types'
 
 /**
@@ -147,7 +147,24 @@ export async function syncSelfApplication(userId: string): Promise<{
       return { success: false, error: `Application not found for user: ${appErr?.message || 'None'}` }
     }
 
-    const { syncSingleApplication } = require('./sync')
+    // Concurrency guard: atomically claim job from PENDING/FAILED to SYNCING
+    const { data: claimedRows, error: claimErr } = await supabase
+      .from('sheet_sync_logs')
+      .update({
+        sync_status: 'SYNCING',
+        last_attempt_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('entity_type', 'MEMBERSHIP_APPLICATION')
+      .eq('entity_id', application.id)
+      .in('sync_status', ['PENDING', 'FAILED'])
+      .select('id')
+
+    if (claimErr || !claimedRows || claimedRows.length === 0) {
+      // Job is already claimed by background worker or already SYNCED
+      return { success: true, registrationId: application.registration_id }
+    }
+
     const adapter = createGoogleSheetsAdapterFromEnv()
     const config = { spreadsheetId, sheetName }
 

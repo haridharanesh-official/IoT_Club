@@ -20,7 +20,6 @@ import {
   Briefcase,
   Target,
   Check,
-  X,
   Send,
   Heart,
   TrendingUp,
@@ -33,62 +32,11 @@ import {
 } from "lucide-react";
 
 export const PublicWebsite: React.FC = () => {
-  const { telemetry, submitApplication } = useIoTApp();
+  const { telemetry } = useIoTApp();
 
   // Interactive Tab States
   const [activeTechTab, setActiveTechTab] = useState<"hardware" | "communication" | "software">("hardware");
   const [activeRoadmapPhase, setActiveRoadmapPhase] = useState<number>(1);
-
-  // Quick Registration Modal State
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [regName, setRegName] = useState("");
-  const [regRoll, setRegRoll] = useState("");
-  const [regDept, setRegDept] = useState("Electronics & Communication");
-  const [regYear, setRegYear] = useState("1st Year");
-  const [regInterests, setRegInterests] = useState<string[]>(["IoT", "Embedded Systems"]);
-  const [submittedId, setSubmittedId] = useState<string | null>(null);
-
-  const interestOptions = [
-    "IoT Devices",
-    "Embedded Systems",
-    "Robotics",
-    "Sensors & Actuators",
-    "Wireless & LoRa",
-    "Cloud & AIoT",
-  ];
-
-  const toggleInterest = (val: string) => {
-    setRegInterests((prev) =>
-      prev.includes(val) ? prev.filter((i) => i !== val) : [...prev, val]
-    );
-  };
-
-  const handleModalSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!regName.trim() || !regRoll.trim()) return;
-
-    const newId = submitApplication({
-      fullName: regName,
-      rollNumber: regRoll,
-      department: regDept,
-      year: regYear,
-      section: "A",
-      collegeEmail: `${regRoll.toLowerCase()}@srishakthi.ac.in`,
-      personalEmail: "",
-      phone: "",
-      interests: regInterests,
-      skills: [{ name: "Beginner Enthusiast", level: "Beginner" }],
-      githubUrl: "",
-      linkedinUrl: "",
-      whyJoin: "Eager to learn hands-on IoT hardware and build practical projects.",
-      whatToLearn: regInterests.join(", "),
-      hoursPerWeek: "8-10 hrs",
-      hackathonInterest: true,
-      researchInterest: false,
-    });
-
-    setSubmittedId(newId);
-  };
 
   // Essential Tech Stack
   const techCategories = {
@@ -213,13 +161,13 @@ export const PublicWebsite: React.FC = () => {
 
               {/* CTAs */}
               <div className="flex flex-wrap items-center gap-3 pt-2">
-                <button
-                  onClick={() => setIsModalOpen(true)}
+                <Link
+                  href="/register"
                   className="flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-sm shadow-md shadow-emerald-500/25 transition-all hover:translate-y-[-1px]"
                 >
                   <span>Join IoT Club</span>
                   <ArrowRight className="w-4 h-4" />
-                </button>
+                </Link>
 
                 <a
                   href="#roadmap"
@@ -562,14 +510,14 @@ export const PublicWebsite: React.FC = () => {
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-            <button
-              onClick={() => setIsModalOpen(true)}
+            <Link
+              href="/register"
               className="px-7 py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-sm shadow-md shadow-emerald-500/25 transition hover:translate-y-[-1px]"
             >
               Join the IoT Club →
-            </button>
+            </Link>
             <Link
-              href="/apply"
+              href="/register"
               className="px-6 py-3.5 rounded-2xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-medium text-sm transition"
             >
               Full Registration Portal
@@ -577,147 +525,6 @@ export const PublicWebsite: React.FC = () => {
           </div>
         </div>
       </section>
-
-      {/* ---------------------------------------------------- */}
-      {/* FRIENDLY QUICK REGISTRATION MODAL                    */}
-      {/* ---------------------------------------------------- */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white/95 border border-slate-200/80 backdrop-blur-xl rounded-3xl max-w-md w-full p-6 space-y-4 shadow-xl relative">
-            <button
-              onClick={() => {
-                setIsModalOpen(false);
-                setSubmittedId(null);
-              }}
-              className="absolute top-4 right-4 p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            {submittedId ? (
-              <div className="text-center py-6 space-y-3">
-                <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
-                  <Check className="w-6 h-6" />
-                </div>
-                <h3 className="text-lg font-bold text-slate-900">Welcome to the Club!</h3>
-                <p className="text-xs text-slate-600">
-                  Thank you, <strong className="text-slate-900">{regName}</strong> ({regRoll}). Your application has been received.
-                </p>
-                <div className="p-2.5 rounded-xl bg-emerald-50 text-xs font-mono text-emerald-800 font-medium">
-                  ID: {submittedId}
-                </div>
-                <button
-                  onClick={() => {
-                    setIsModalOpen(false);
-                    setSubmittedId(null);
-                  }}
-                  className="mt-2 px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-xs transition"
-                >
-                  Done
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={handleModalSubmit} className="space-y-3.5">
-                <div>
-                  <span className="text-[10px] font-mono text-emerald-700 font-bold uppercase">Quick Enrolment</span>
-                  <h3 className="text-lg font-bold text-slate-900">Join IoT Club</h3>
-                  <p className="text-xs text-slate-500">Sri Shakthi Institute of Engineering and Technology</p>
-                </div>
-
-                <div className="space-y-3 text-xs">
-                  <div>
-                    <label className="block text-slate-700 font-medium mb-1">Full Name *</label>
-                    <input
-                      type="text"
-                      required
-                      value={regName}
-                      onChange={(e) => setRegName(e.target.value)}
-                      placeholder="e.g. Hari Dharanesh"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:border-emerald-500 focus:bg-white transition"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2.5">
-                    <div>
-                      <label className="block text-slate-700 font-medium mb-1">Register Number *</label>
-                      <input
-                        type="text"
-                        required
-                        value={regRoll}
-                        onChange={(e) => setRegRoll(e.target.value)}
-                        placeholder="e.g. 714023106001"
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:border-emerald-500 focus:bg-white transition"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-slate-700 font-medium mb-1">Year</label>
-                      <select
-                        value={regYear}
-                        onChange={(e) => setRegYear(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:border-emerald-500 focus:bg-white transition"
-                      >
-                        <option>1st Year</option>
-                        <option>2nd Year</option>
-                        <option>3rd Year</option>
-                        <option>4th Year</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-slate-700 font-medium mb-1">Department</label>
-                    <select
-                      value={regDept}
-                      onChange={(e) => setRegDept(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:border-emerald-500 focus:bg-white transition"
-                    >
-                      <option>Electronics & Communication Engineering</option>
-                      <option>Computer Science & Engineering</option>
-                      <option>Information Technology</option>
-                      <option>Electrical & Electronics Engineering</option>
-                      <option>Mechanical / Mechatronics</option>
-                      <option>Other Department</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-slate-700 font-medium mb-1">Areas You're Interested In</label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {interestOptions.map((opt) => {
-                        const isSel = regInterests.includes(opt);
-                        return (
-                          <button
-                            type="button"
-                            key={opt}
-                            onClick={() => toggleInterest(opt)}
-                            className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border transition ${
-                              isSel
-                                ? "bg-emerald-50 border-emerald-300 text-emerald-800"
-                                : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
-                            }`}
-                          >
-                            {opt}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                  <span className="text-[11px] text-slate-400">Takes 30 seconds</span>
-                  <button
-                    type="submit"
-                    className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-xs shadow-xs transition"
-                  >
-                    Submit Enrolment
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 };
