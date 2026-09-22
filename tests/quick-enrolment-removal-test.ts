@@ -53,9 +53,12 @@ const SYNTHETIC_STUDENT = {
 }
 
 async function cleanupSyntheticStudent(email: string) {
+  await fetch('http://127.0.0.1:54324/api/v1/messages', { method: 'DELETE' }).catch(() => {})
   const { data: users } = await supabaseAdmin.auth.admin.listUsers()
   const target = users?.users?.find((u) => u.email === email)
   if (target) {
+    await supabaseAdmin.from('audit_logs').delete().eq('actor_user_id', target.id)
+    await supabaseAdmin.from('audit_logs').delete().eq('entity_id', target.id)
     const { data: apps } = await supabaseAdmin.from('membership_applications').select('id').eq('user_id', target.id)
     for (const app of apps || []) {
       await supabaseAdmin.from('audit_logs').delete().eq('entity_id', app.id)
@@ -94,45 +97,36 @@ async function runQuickEnrolmentRemovalTest() {
     console.log('--- TEST 1: LANDING PAGE HERO CTA ---')
     await page.goto(`${BASE_URL}/`, { waitUntil: 'networkidle' })
 
-    // Find the visible green "Join IoT Club" hero CTA
     const heroJoinBtn = page.locator('a:has-text("Join IoT Club")').first()
     assert.ok(await heroJoinBtn.isVisible(), 'Hero "Join IoT Club" CTA must be visible')
     const heroHref = await heroJoinBtn.getAttribute('href')
     assert.equal(heroHref, '/register', 'Hero CTA href must be "/register"')
 
-    // Click hero button and wait for navigation
+    // Click hero button and wait for navigation directly to /register
     await heroJoinBtn.click()
-    await page.waitForURL(/\/(register|login)/, { timeout: 10000 })
-
-    // Unauthenticated visitor navigating to /register is redirected to /login
-    assert.ok(
-      page.url().includes('/register') || page.url().includes('/login'),
-      `Clicking "Join IoT Club" must route directly to /register (or /login if unauth), actual: ${page.url()}`
-    )
+    await page.waitForURL('**/register', { timeout: 10000 })
+    assert.ok(page.url().includes('/register'), `Clicking "Join IoT Club" routes directly to /register, actual: ${page.url()}`)
 
     // Verify NO Quick Enrolment modal appears
     const modalHeading = page.locator('text=Quick Enrolment')
     assert.equal(await modalHeading.count(), 0, 'No "Quick Enrolment" modal should ever appear')
-    console.log('✓ TEST 1: Hero "Join IoT Club" navigates to /register with zero Quick Enrolment modal.')
+    console.log('✓ TEST 1: Hero "Join IoT Club" navigates directly to /register with zero Quick Enrolment modal.')
 
     // -----------------------------------------------------------
     // STEP 2: AUDIT ALL PUBLIC REGISTRATION CTAs
     // -----------------------------------------------------------
     console.log('\n--- TEST 2: AUDITING ALL PUBLIC REGISTRATION CTAs ---')
 
-    // Check /apply direct redirect
     const applyRes = await fetch(`${BASE_URL}/apply`, { redirect: 'manual' })
     assert.equal(applyRes.status, 307, '/apply must return 307 Temporary Redirect')
     assert.equal(applyRes.headers.get('location'), '/register', '/apply must redirect to /register')
     console.log('✓ /apply -> 307 -> /register verified.')
 
-    // Audit Navbar CTA
     await page.goto(`${BASE_URL}/`, { waitUntil: 'networkidle' })
     const navApply = page.locator('header a:has-text("Apply to Join")').first()
     assert.ok(await navApply.isVisible(), 'Navbar Apply CTA visible')
     assert.equal(await navApply.getAttribute('href'), '/register', 'Navbar Apply CTA must point to /register')
 
-    // Audit Footer CTAs
     const footerJoin = page.locator('footer a:has-text("Join IoT Club")').first()
     assert.equal(await footerJoin.getAttribute('href'), '/register', 'Footer Join CTA must point to /register')
 
@@ -142,14 +136,12 @@ async function runQuickEnrolmentRemovalTest() {
     const footerPortal = page.locator('footer a:has-text("Registration Portal")').first()
     assert.equal(await footerPortal.getAttribute('href'), '/register', 'Footer Registration Portal link must point to /register')
 
-    // Audit Bottom CTA on Landing Page
     const bottomJoin = page.locator('a:has-text("Join the IoT Club →")').first()
     assert.equal(await bottomJoin.getAttribute('href'), '/register', 'Bottom "Join the IoT Club →" must point to /register')
 
     const bottomFull = page.locator('a:has-text("Full Registration Portal")').first()
     assert.equal(await bottomFull.getAttribute('href'), '/register', 'Bottom "Full Registration Portal" must point to /register')
 
-    // Audit About Page CTA
     await page.goto(`${BASE_URL}/about`, { waitUntil: 'networkidle' })
     const aboutJoin = page.locator('a:has-text("Join IoT Club")').first()
     assert.equal(await aboutJoin.getAttribute('href'), '/register', 'About page Join CTA must point to /register')
@@ -157,28 +149,85 @@ async function runQuickEnrolmentRemovalTest() {
     console.log('✓ TEST 2: All 8 public registration CTAs strictly resolve to /register.')
 
     // -----------------------------------------------------------
-    // STEP 3: NEW STUDENT EMAIL SIGNUP & MAILPIT CONFIRMATION
+    // STEP 3: LOGIN PAGE AUDIT — NO DUPLICATE REGISTRATION
     // -----------------------------------------------------------
-    console.log('\n--- TEST 3: NEW STUDENT EMAIL SIGNUP ---')
+    console.log('\n--- TEST 3: LOGIN PAGE AUDIT ---')
     await page.goto(`${BASE_URL}/login`, { waitUntil: 'networkidle' })
 
-    // Switch to "Create Account" tab
-    await page.click('button:has-text("Create Account")')
-    await page.fill('input[type="email"]', SYNTHETIC_STUDENT.collegeEmail)
-    await page.fill('input[type="password"]', SYNTHETIC_STUDENT.password)
-    await page.click('form button[type="submit"]')
+    // Verify there is no separate registration form or create account tab on login
+    const createAccountTab = page.locator('button:has-text("Create Account")')
+    assert.equal(await createAccountTab.count(), 0, 'No "Create Account" tab on login page')
 
-    // Wait for signup notice
-    await page.waitForSelector('text=Check your email to confirm your account', { timeout: 10000 })
-    console.log('Signup completed. Fetching Mailpit confirmation...')
+    // Verify "Start Full Registration" link is present and points to /register
+    const startRegLink = page.locator('a:has-text("Start Full Registration")')
+    assert.ok(await startRegLink.isVisible(), 'Start Full Registration link must be visible on login')
+    assert.equal(await startRegLink.getAttribute('href'), '/register', 'Start Full Registration link points to /register')
+    console.log('✓ TEST 3: Login page contains zero duplicate registration forms and routes new students to /register.')
+
+    // -----------------------------------------------------------
+    // STEP 4: COMPLETE FULL 5-STEP REGISTRATION AT /register
+    // -----------------------------------------------------------
+    console.log('\n--- TEST 4: COMPLETE FULL 5-STEP REGISTRATION AT /register ---')
+    await page.goto(`${BASE_URL}/register`, { waitUntil: 'networkidle' })
+
+    // Step 1: Personal Details
+    await page.fill('#field-full-name', SYNTHETIC_STUDENT.name)
+    await page.selectOption('#field-gender', SYNTHETIC_STUDENT.gender)
+    await page.fill('#field-dob', SYNTHETIC_STUDENT.dob)
+    await page.fill('#field-mobile', SYNTHETIC_STUDENT.mobile)
+    await page.fill('#field-college-email', SYNTHETIC_STUDENT.collegeEmail)
+    await page.fill('#field-personal-email', SYNTHETIC_STUDENT.personalEmail)
+    await page.click('button:has-text("Continue")')
+    await page.waitForTimeout(400)
+
+    // Step 2: Academic Details
+    await page.fill('#field-register-number', SYNTHETIC_STUDENT.rollNumber)
+    await page.fill('#field-department', SYNTHETIC_STUDENT.department)
+    await page.fill('#field-degree', SYNTHETIC_STUDENT.programme)
+    await page.fill('#field-year', SYNTHETIC_STUDENT.year)
+    await page.fill('#field-semester', SYNTHETIC_STUDENT.semester)
+    await page.fill('#field-section', SYNTHETIC_STUDENT.section)
+    await page.fill('#field-batch', SYNTHETIC_STUDENT.batch)
+    await page.click('button:has-text("Continue")')
+    await page.waitForTimeout(400)
+
+    // Step 3: IoT & Skills Details
+    await page.fill('#field-reason', SYNTHETIC_STUDENT.reason)
+    for (const interest of SYNTHETIC_STUDENT.interests) {
+      await page.check(`label:has-text("${interest}") input[type="checkbox"]`)
+    }
+    await page.selectOption('#field-skill-level', SYNTHETIC_STUDENT.skillLevel)
+    await page.check('input[name="previous-iot-experience"][type="radio"]:near(:text("Yes"))')
+    await page.fill('#field-experience-desc', SYNTHETIC_STUDENT.experienceDesc)
+    for (const skill of SYNTHETIC_STUDENT.skills) {
+      await page.check(`label:has-text("${skill}") input[type="checkbox"]`)
+    }
+    await page.fill('#field-github', SYNTHETIC_STUDENT.githubUrl)
+    await page.fill('#field-linkedin', SYNTHETIC_STUDENT.linkedinUrl)
+    await page.fill('#field-portfolio', SYNTHETIC_STUDENT.portfolioUrl)
+    await page.click('button:has-text("Continue")')
+    await page.waitForTimeout(400)
+
+    // Step 4: Account Creation
+    const accountEmailVal = await page.inputValue('#account-email')
+    assert.equal(accountEmailVal, SYNTHETIC_STUDENT.collegeEmail, 'Login email pre-filled with college email')
+
+    await page.fill('#account-password', SYNTHETIC_STUDENT.password)
+    await page.fill('#account-confirm-password', SYNTHETIC_STUDENT.password)
+    await page.click('button:has-text("Create Account & Continue")')
 
     // Wait for email in Mailpit
-    await page.waitForTimeout(1500)
-    const mailpitRes = await fetch('http://127.0.0.1:54324/api/v1/messages')
-    const mailData = await mailpitRes.json()
-    const confirmationMsg = mailData.messages?.find((m: any) =>
-      m.To?.some((t: any) => t.Address === SYNTHETIC_STUDENT.collegeEmail)
-    )
+    console.log('Account creation submitted. Checking Mailpit...')
+    let confirmationMsg: any = null
+    for (let attempt = 0; attempt < 10; attempt++) {
+      await page.waitForTimeout(1000)
+      const mailpitRes = await fetch('http://127.0.0.1:54324/api/v1/messages')
+      const mailData = await mailpitRes.json()
+      confirmationMsg = mailData.messages?.find((m: any) =>
+        m.To?.some((t: any) => t.Address === SYNTHETIC_STUDENT.collegeEmail)
+      )
+      if (confirmationMsg) break
+    }
     assert.ok(confirmationMsg, `Confirmation email must arrive in Mailpit for ${SYNTHETIC_STUDENT.collegeEmail}`)
 
     const msgDetailRes = await fetch(`http://127.0.0.1:54324/api/v1/message/${confirmationMsg.ID}`)
@@ -189,69 +238,30 @@ async function runQuickEnrolmentRemovalTest() {
     // Confirm email in browser
     await page.goto(`${BASE_URL}/auth/confirm?token_hash=${tokenHash}&type=email`, { waitUntil: 'networkidle' })
     await page.waitForTimeout(1500)
-    assert.ok(page.url().includes('/register'), `Confirmed student must land on /register, actual: ${page.url()}`)
-    console.log('✓ TEST 3: Email confirmed via Mailpit token; landed on canonical /register.')
+    assert.ok(page.url().includes('/register'), `Confirmed student must return to /register, actual: ${page.url()}`)
 
-    // -----------------------------------------------------------
-    // STEP 4: COMPLETE FULL 5-STEP REGISTRATION
-    // -----------------------------------------------------------
-    console.log('\n--- TEST 4: COMPLETE FULL 5-STEP REGISTRATION ---')
-
-    // Step 1: Personal Details
-    await page.fill('label:has-text("Full name") input', SYNTHETIC_STUDENT.name)
-    await page.fill('label:has-text("Date of birth") input', SYNTHETIC_STUDENT.dob)
-    await page.fill('label:has-text("Gender") input', SYNTHETIC_STUDENT.gender)
-    await page.fill('label:has-text("Mobile number") input', SYNTHETIC_STUDENT.mobile)
-    await page.fill('label:has-text("Personal email") input', SYNTHETIC_STUDENT.personalEmail)
-    await page.click('button:has-text("Continue")')
-    await page.waitForTimeout(500)
-
-    // Step 2: Academic Details
-    await page.fill('label:has-text("Register number") input', SYNTHETIC_STUDENT.rollNumber)
-    await page.fill('label:has-text("Department") input', SYNTHETIC_STUDENT.department)
-    await page.fill('label:has-text("Degree / programme") input', SYNTHETIC_STUDENT.programme)
-    await page.fill('label:has-text("Year of study") input', SYNTHETIC_STUDENT.year)
-    await page.fill('label:has-text("Semester") input', SYNTHETIC_STUDENT.semester)
-    await page.fill('label:has-text("Section") input', SYNTHETIC_STUDENT.section)
-    await page.fill('label:has-text("Batch") input', SYNTHETIC_STUDENT.batch)
-    await page.click('button:has-text("Continue")')
-    await page.waitForTimeout(500)
-
-    // Step 3: IoT & Skills Details
-    await page.fill('textarea', SYNTHETIC_STUDENT.reason)
-    for (const interest of SYNTHETIC_STUDENT.interests) {
-      await page.check(`label:has-text("${interest}") input[type="checkbox"]`)
+    // Form draft restored! Advance to Review if not already there
+    const pageText = await page.textContent('body')
+    if (pageText?.includes('Step 4')) {
+      await page.click('button:has-text("Continue to Review")')
+      await page.waitForTimeout(400)
     }
-    await page.selectOption('select', SYNTHETIC_STUDENT.skillLevel)
-    await page.check('input[name="previous-experience"][type="radio"]:near(:text("Yes"))')
-    await page.fill('label:has-text("Experience description") input', SYNTHETIC_STUDENT.experienceDesc)
-    for (const skill of SYNTHETIC_STUDENT.skills) {
-      await page.check(`label:has-text("${skill}") input[type="checkbox"]`)
-    }
-    await page.fill('label:has-text("GitHub URL") input', SYNTHETIC_STUDENT.githubUrl)
-    await page.fill('label:has-text("LinkedIn URL") input', SYNTHETIC_STUDENT.linkedinUrl)
-    await page.fill('label:has-text("Portfolio URL") input', SYNTHETIC_STUDENT.portfolioUrl)
-    await page.click('button:has-text("Continue")')
-    await page.waitForTimeout(500)
-
-    // Step 4: Account Details
-    await page.click('button:has-text("Continue")')
-    await page.waitForTimeout(500)
 
     // Step 5: Review & Consent
     const reviewText = await page.textContent('body')
     assert.ok(reviewText?.includes(SYNTHETIC_STUDENT.name), 'Review displays full name')
     assert.ok(reviewText?.includes(SYNTHETIC_STUDENT.rollNumber), 'Review displays roll number')
+    assert.ok(!reviewText?.includes(SYNTHETIC_STUDENT.password), 'Password must never be displayed in review')
 
     // Check all 3 consent boxes
-    const consentBoxes = page.locator('input[type="checkbox"]')
+    const consentBoxes = page.locator('input[type="checkbox"]:visible')
     const count = await consentBoxes.count()
     for (let i = 0; i < count; i++) {
       await consentBoxes.nth(i).check()
     }
 
     // Submit
-    await page.click('button:has-text("Submit application")')
+    await page.click('button:has-text("Submit Application")')
     await page.waitForURL('**/membership/status', { timeout: 15000 })
     assert.ok(page.url().includes('/membership/status'), 'Routes to /membership/status upon submission')
 
@@ -262,7 +272,7 @@ async function runQuickEnrolmentRemovalTest() {
     const generatedRegId = regIdMatch[0]
     console.log(`Generated Registration ID: ${generatedRegId}`)
     assert.ok(statusContent?.includes('PENDING'), 'Status must display PENDING')
-    console.log('✓ TEST 4: Full 5-step registration submitted, routed to /membership/status.')
+    console.log('✓ TEST 4: Full 5-step registration with Step 4 account creation submitted, routed to /membership/status.')
 
     // -----------------------------------------------------------
     // STEP 5: VERIFY SUPABASE DIRECTLY
@@ -299,7 +309,6 @@ async function runQuickEnrolmentRemovalTest() {
     // STEP 6: VERIFY GOOGLE SHEETS SYNCHRONIZATION
     // -----------------------------------------------------------
     console.log('\n--- TEST 6: VERIFY GOOGLE SHEETS MIRROR ---')
-    // Wait for self-sync to finish or drain pending outbox
     let isSynced = false
     for (let i = 0; i < 25; i++) {
       const { data: syncLog } = await supabaseAdmin.from('sheet_sync_logs').select('sync_status').eq('entity_id', app.id).single()
@@ -324,7 +333,6 @@ async function runQuickEnrolmentRemovalTest() {
     assert.equal(matchingRows.length, 1, `Expected exactly 1 Google Sheet row for ${generatedRegId}, found ${matchingRows.length}`)
     const row = matchingRows[0]
 
-    // Verify all canonical columns
     assert.equal(row[0], generatedRegId, 'Col A matches Registration ID')
     assert.equal(row[1], SYNTHETIC_STUDENT.rollNumber, 'Col B matches Roll Number')
     assert.equal(row[2], SYNTHETIC_STUDENT.name, 'Col C matches Full Name')
@@ -376,7 +384,6 @@ async function runQuickEnrolmentRemovalTest() {
       assert.equal(landingOverflow, false, `No horizontal overflow at ${vp.name} on landing page`)
 
       await page.goto(`${BASE_URL}/register`, { waitUntil: 'networkidle' })
-      // For registered student, /register routes to /membership/status
       const statusOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 2)
       assert.equal(statusOverflow, false, `No horizontal overflow at ${vp.name} on status page`)
     }

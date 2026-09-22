@@ -174,7 +174,7 @@ async function runPhase09Tests() {
   charlieUser = charlieCreated.data.user!
   await adminService.from('profiles').update({ full_name: 'Charlie Test Student', role: 'STUDENT', membership_status: 'PENDING' }).eq('id', charlieUser.id)
 
-  const charlieRegId = 'IOT-2026-00099'
+  const charlieRegId = 'IOT-2026-90099'
   await adminService.from('student_profiles').insert({
     user_id: charlieUser.id,
     registration_id: charlieRegId,
@@ -377,7 +377,7 @@ async function runPhase09Tests() {
 
   const { data: daveApp, error: daveErr } = await adminService.from('membership_applications').insert({
     user_id: daveUser.id,
-    registration_id: 'IOT-2026-00098',
+    registration_id: 'IOT-2026-90098',
     reason_for_joining: 'Testing rejection.',
     skill_level: 'BEGINNER',
     previous_iot_experience: false,
@@ -593,7 +593,7 @@ async function runPhase09Tests() {
 
   const { data: eveApp, error: eveErr } = await adminService.from('membership_applications').insert({
     user_id: eveUser.id,
-    registration_id: 'IOT-2026-00097',
+    registration_id: 'IOT-2026-90097',
     reason_for_joining: 'Testing concurrency.',
     skill_level: 'BEGINNER',
     previous_iot_experience: false,
@@ -676,7 +676,7 @@ async function runPhase09Tests() {
 
   // Cleanup temporary test fixtures
   console.log('\n--- Cleaning up temporary test fixtures ---')
-  for (const uid of [daveUser.id, eveUser.id]) {
+  for (const uid of [daveUser.id, eveUser.id, charlieUser.id]) {
     await adminService.from('audit_logs').delete().eq('actor_user_id', uid)
     const { data: uApps } = await adminService.from('membership_applications').select('id').eq('user_id', uid)
     for (const app of uApps || []) {

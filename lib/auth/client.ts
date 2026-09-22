@@ -3,7 +3,6 @@ import { createClient } from '../../utils/supabase/client'
 export const ACCOUNT_PATH = '/auth/account'
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const strongPassword = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/
 
 export function normalizeEmail(email: string) {
   return email.trim().toLowerCase()
@@ -14,7 +13,7 @@ export function validateEmail(email: string) {
 }
 
 export function validatePassword(password: string) {
-  return strongPassword.test(password)
+  return password.length >= 8 && /[a-zA-Z]/.test(password) && /\d/.test(password)
 }
 
 export type AuthResult = { ok: true; needsConfirmation?: boolean } | { ok: false; message: string }
@@ -38,7 +37,7 @@ export async function signUp(email: string, password: string): Promise<AuthResul
   const cleanEmail = normalizeEmail(email)
   if (!validateEmail(cleanEmail)) return { ok: false, message: 'Enter a valid email address.' }
   if (!validatePassword(password)) {
-    return { ok: false, message: 'Use at least 8 characters with uppercase, lowercase, number, and special character.' }
+    return { ok: false, message: 'Use at least 8 characters including letters and numbers.' }
   }
 
   try {
