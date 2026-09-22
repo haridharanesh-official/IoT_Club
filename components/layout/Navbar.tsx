@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useIoTApp } from "@/lib/store";
 import { defaultClubConfig } from "@/lib/clubConfig";
+import { createClient } from "@/utils/supabase/client";
 import {
   Cpu,
   Compass,
@@ -25,6 +26,24 @@ export const Navbar: React.FC = () => {
   const pathname = usePathname();
   const { currentUser, isAuthenticated, logout, student } = useIoTApp();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [authEmail, setAuthEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    const client = createClient();
+    let active = true;
+    client.auth.getUser().then(({ data, error }) => {
+      if (active) setAuthEmail(error ? null : data.user?.email ?? null);
+    }).catch(() => {
+      if (active) setAuthEmail(null);
+    });
+    const { data: listener } = client.auth.onAuthStateChange((_event, session) => {
+      if (active) setAuthEmail(session?.user.email ?? null);
+    });
+    return () => {
+      active = false;
+      listener.subscription.unsubscribe();
+    };
+  }, []);
 
   // Dynamic Navigation Items based on verified authentication & role
   const getNavLinks = () => {
@@ -127,7 +146,9 @@ export const Navbar: React.FC = () => {
           {/* Right Action Icons */}
           <div className="hidden lg:flex items-center gap-2.5">
             {/* User Session or Sign In */}
-            {isAuthenticated && currentUser ? (
+            {authEmail ? (
+              <Link href="/auth/account" className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs transition">Account</Link>
+            ) : isAuthenticated && currentUser ? (
               <div className="flex items-center gap-2 pl-2 border-slate-200">
                 <Link
                   href={currentUser.portalRedirect}
@@ -157,7 +178,7 @@ export const Navbar: React.FC = () => {
             ) : (
               <div className="flex items-center gap-2">
                 <Link
-                  href="/apply"
+                  href="/register"
                   className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs shadow-xs transition"
                 >
                   <span>Apply to Join</span>
@@ -197,7 +218,9 @@ export const Navbar: React.FC = () => {
             ))}
 
             <div className="pt-2 border-t border-slate-100">
-              {isAuthenticated && currentUser ? (
+              {authEmail ? (
+                <Link href="/auth/account" onClick={() => setMobileMenuOpen(false)} className="block w-full text-center py-2 rounded-xl bg-slate-900 text-white font-bold">Account</Link>
+              ) : isAuthenticated && currentUser ? (
                 <div className="flex items-center justify-between pt-1">
                   <span className="font-bold text-slate-800">
                     {currentUser.name} ({currentUser.role})
@@ -215,7 +238,7 @@ export const Navbar: React.FC = () => {
               ) : (
                 <div className="flex flex-col gap-2">
                   <Link
-                    href="/apply"
+                    href="/register"
                     onClick={() => setMobileMenuOpen(false)}
                     className="block w-full text-center py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold transition"
                   >

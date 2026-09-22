@@ -2,108 +2,268 @@
 
 > **We Learn. We Build. We Innovate.**
 
-A complete digital operating system for university IoT clubs covering the entire student journey:
-**Discover → Apply → Get Selected → Learn → Practice → Build → Use Lab → Collaborate → Compete → Get Certified → Mentor Others**
+A modern, production-ready digital operating system for university IoT clubs covering the entire student journey:
+**Discover → Apply → Get Selected → Learn → Practice → Build → Lab Inventory → Collaborate → Compete → Get Certified → Mentor Others**
 
 ---
 
-## 1. System Architecture & Portals
+## 1. Overview & Purpose
 
-The platform is a unified fullstack **Next.js 15+ (App Router)** application written in **TypeScript** and **Tailwind CSS**, designed to support 5 distinct user experiences under Role-Based Access Control (RBAC):
+The **IoT Club Platform** is an enterprise-grade digital portal engineered to streamline the operations, learning tracks, hardware inventory, and administrative workflows of college technology clubs. 
 
-1. **Public Portal (`/`)**:
-   - Hero section with live telemetry status ticker
-   - Vision & Mission statements
-   - 6 Technical Domain specializations (Embedded Systems, Networking, AIoT, Robotics, Security, Cloud)
-   - Active hardware projects showcase (CareGrid, Autonomous Rover, AgriSense)
-   - Upcoming workshops and SIH/IEEE hackathon podium finishes
-   - Seed statistics strip (186 Members, 17 Projects, 268 Lab Assets, 5 Wins)
-
-2. **Applicant Portal (`/apply`)**:
-   - 6-Step recruitment wizard (Personal Information, Technical Interests, Skills with Beginner/Intermediate/Advanced levels, Portfolios, Questions, Review & Submit)
-   - Candidate Dashboard with visual **Recruitment Pipeline Tracker**:
-     `Submitted → Review → Assessment → Practical Round → Interview → Selected`
-
-3. **Student Portal (`/dashboard`, `/learn`, `/projects`, `/lab`, `/opportunities`, `/profile`)**:
-   - Level 4 IoT Builder dashboard for **Hari Dharanesh SP**
-   - 8 Structured LMS tracks with circuit wiring diagrams, C++/FreeRTOS code, and assignment submission
-   - **Interactive Visual Skill Tree (`/learn/skills`)** with prerequisite dependency graph and locked node inspector
-   - XP Transaction Ledger (+100, +200, +30, +500 XP)
-   - Project workspace with sprint task board and hardware BOM
-   - Team formation board (`/projects/teams`) with open role applications
-   - Monthly Innovation Challenge (`/challenges`) with Smart Energy Monitoring
-
-4. **Teacher & Mentor Portal (`/teacher`)**:
-   - Evaluation Center with multi-criteria rubric sliders (Circuit Design /20, Code Quality /20, MQTT /25, Error Handling /15, Docs /10, Demo /10 = 100)
-   - Hardware Checkout Approval Queue (Approve/Reject student requests with return date tracking)
-   - **Batch-Level Skill Analytics (`/teacher/analytics`)** identifying cohort competencies (ESP32 81%, Linux 44%, IoT Security 31%)
-   - Workshop Dynamic QR Attendance Generator with short-lived auto-rotating signed tokens
-
-5. **Club & Lab Admin Portal (`/admin`, `/lab`)**:
-   - Recruitment Pipeline Kanban board with drag-to-advance stage controls
-   - Complete Hardware Inventory (268+ assets) with search, filter, and QR code generator
-   - **QR Asset Resolution Route (`/lab/assets/[assetId]`)** for component checkouts, returns, and damage reporting
-   - **Live IoT Lab Telemetry (`/lab/live`)** simulating MQTT sensor feeds (Temperature, Humidity, Air Quality, Power, Occupancy, active nodes)
-   - Immutable System Audit Trail (`/admin/audit`) logging all state mutations
-
-6. **Public Student Portfolio (`/member/[username]`)**:
-   - Public view for `iotclub.org/member/hari` displaying verified skills, projects, and certifications without leaking private student data.
-
-7. **Certificate Public Verification (`/verify`)**:
-   - Cryptographic registry verifying credentials such as `IOT-2026-ESP32-0042` with digital seal.
-
-8. **Interactive AI IoT Mentor (Multi-AI Compatible)**:
-   - Diagnostic assistant answering questions on ESP32 pinouts (strapping pins), I2C address scanning (`0x23` vs `0x5C`), MQTT retain flags vs QoS, and curriculum guidance.
-   - **Model-Agnostic Architecture**: The AI integration context and project setup are designed to be seamlessly switched between multiple AI models and agents, including **Google Antigravity**, **OpenAI Codex**, **Claude**, and other LLMs. This flexibility ensures the platform can leverage the best available AI for coding assistance, hardware diagnostics, and student mentoring without vendor lock-in.
+Built with **Next.js 15+ (App Router)**, **TypeScript**, **Tailwind CSS**, and **Supabase (PostgreSQL)**, the system unites public club discovery, authenticated student portfolios, faculty evaluation centers, and administrative membership management into a single, high-performance platform.
 
 ---
 
-## 2. Configurable Product Identity (`club_config`)
+## 2. System Architecture & Portals
 
-To ensure no fake college, faculty name, or private contact details are hardcoded, all institutional branding is managed in `lib/clubConfig.ts`:
+```mermaid
+flowchart TD
+    User([User / Browser]) --> Router{Next.js Server / Middleware}
+    
+    subgraph Client Portals
+        Router --> Public[Public Portal /]
+        Router --> Student[Student Portal /dashboard]
+        Router --> Teacher[Teacher Portal /teacher]
+        Router --> Admin[Admin Portal /admin]
+    end
 
-```typescript
-export const defaultClubConfig = {
-  clubName: "IoT Club",
-  subtitle: "Learning • Building • Innovating",
-  collegeName: "Engineering Institute",
-  department: "Interdisciplinary Technology & Innovation Center",
-  primaryContact: "Faculty Mentor / Lab Admin",
-  email: "contact@iotclub.org",
-  address: "IoT & Embedded Systems Laboratory, Tech Block, Level 3",
-  githubOrg: "iot-club-org",
-};
+    subgraph Auth & Backend Services
+        Router --> Auth[Supabase Auth / Google OAuth]
+        Router --> Postgres[(Supabase PostgreSQL)]
+        Postgres --> RLS[Row Level Security]
+        Postgres --> Triggers[Outbox Queue Triggers]
+    end
+
+    subgraph External Integrations
+        Triggers --> OutboxLogs[(sheet_sync_logs)]
+        OutboxLogs --> Worker[Internal Worker API / Cron]
+        Worker --> GoogleSheets[(Google Sheets Registry)]
+    end
 ```
 
+### Supported Portals & Roles:
+1. **Public Website (`/`)**: Club showcase, technical domain specializations (Embedded Systems, Networking, AIoT, Robotics, Cloud, Security), hardware showcases, and certificate verification (`/verify`).
+2. **Student Portal (`/dashboard`, `/learn`, `/projects`, `/lab`)**: Student dashboard, structured LMS learning tracks, prerequisite skill trees, XP and badges, hardware borrowing requests, team formation boards, and monthly innovation challenges.
+3. **Teacher & Mentor Portal (`/teacher`)**: Assignment evaluation center with multi-criteria rubric sliders, hardware checkout approvals, cohort skill analytics, and dynamic QR attendance token generation.
+4. **Admin Portal (`/admin`, `/admin/membership`)**: Real-time membership management with status filtering, multi-column search, pagination, detailed modal inspection, audit history, and Google Sheets synchronization controls.
+5. **Lab Management (`/lab`, `/lab/live`)**: Asset tracking with QR code resolution (`/lab/assets/[assetId]`), inventory control, and live lab telemetry streams.
+
 ---
 
-## 3. Database Schema
+## 3. Technology Stack
 
-Production-ready PostgreSQL / Supabase SQL schema is included in `database/schema.sql`, featuring all 44 core entities, enums, foreign keys, and Row Level Security (RLS) policies.
+- **Framework**: Next.js 15.5+ (React 19, App Router, Server Components, Server Actions)
+- **Language**: TypeScript (Strict type checking)
+- **Styling**: Tailwind CSS, Lucide Icons, clsx, tailwind-merge
+- **Database & Auth**: Supabase (PostgreSQL 17), Supabase Auth (Email/Password, Google OAuth 2.0), Row Level Security (RLS)
+- **External Integration**: Google Sheets API v4 (Service Account JWT authorization, outbox queue pattern)
+- **Runtime & Deployment**: Vercel (Edge Middleware, Serverless Functions), Supabase Cloud
 
 ---
 
-## 4. Development & Build Scripts
+## 4. Authentication & Membership Lifecycle
+
+### Authentication Architecture
+- Dual-mode authentication via **Email/Password** and **Google OAuth 2.0**.
+- Centralized server-side route resolver (`lib/auth/server.ts`) directing users authoritatively:
+  - Unauthenticated → `/login`
+  - Registered without approved membership → `/membership/status`
+  - Approved Student → `/dashboard`
+  - Faculty / Mentor → `/teacher`
+  - Administrator → `/admin`
+
+### Membership State Machine
+```
+[Registration] ──► PENDING ──► APPROVED ──► SUSPENDED
+                       │            ▲           │
+                       │            └───────────┘ (Reactivate)
+                       ▼
+                    REJECTED (Terminal)
+```
+- **Strict Database Transitions**: Handled via `review_membership_application` PostgreSQL RPC.
+- **Concurrency Control**: Protected with `SELECT ... FOR UPDATE` row locking.
+- **Audit Logging**: Every state change writes immutable records to `public.audit_logs`.
+- **Mandatory Rationales**: Administrative notes required for `REJECTED` and `SUSPENDED` decisions.
+
+---
+
+## 5. Google Sheets Integration
+
+The platform features an automated, transactional outbox pattern to mirror registrations to an external administrative Google Spreadsheet:
+1. **Source of Truth**: PostgreSQL is the single source of truth.
+2. **Outbox Trigger**: Inserting or reviewing an application queues a `PENDING` entry in `public.sheet_sync_logs`.
+3. **Dedicated Worker Secret**: Worker endpoints (`/api/internal/google-sheets/sync`) require `INTERNAL_SHEETS_SYNC_SECRET` (distinct from database credentials).
+4. **Self-Sync Route**: Students can securely trigger an update of their own record at `/api/internal/google-sheets/sync/self` without exposing global worker capabilities.
+5. **In-Place Updates**: Ensures zero duplicate rows; existing registration rows are located by Registration ID and updated in place.
+
+---
+
+## 6. Security Model
+
+- **Row Level Security (RLS)**: Enforced across all public tables (`profiles`, `membership_applications`, `student_profiles`, `audit_logs`, etc.).
+- **Server Guards**: Administrative and teacher pages perform server-side session and role validation before rendering.
+- **Search Path Hardening**: All `SECURITY DEFINER` database functions execute with `set search_path = ''`.
+- **Sanitized Redirects**: Open-redirect protection sanitizes callback URLs against allowlists.
+- **Secret Isolation**: Clear separation between public anon keys, server-side service role keys, internal worker secrets, and Google service account keys.
+
+---
+
+## 7. Local Development Setup
+
+### Prerequisites
+- **Node.js**: v20.x or v22.x
+- **Docker Desktop**: Required for local Supabase containers
+- **Git**
+
+### Installation
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/haridharanesh-official/IoT_Club.git
+   cd IoT_Club
+   ```
+
+2. **Install dependencies**:
+   ```bash
+   npm ci
+   ```
+
+3. **Start local Supabase stack**:
+   ```bash
+   npx supabase start
+   ```
+
+4. **Initialize database schema & synthetic seeds**:
+   ```bash
+   npx supabase db reset
+   ```
+
+5. **Configure environment variables**:
+   ```bash
+   cp .env.example .env.local
+   ```
+   Fill in local credentials obtained from `npx supabase status`.
+
+6. **Start Next.js development server**:
+   ```bash
+   npm run dev
+   ```
+   Access the application at `http://localhost:3000`.
+
+---
+
+## 8. Environment Variables
+
+Reference template is provided in [`.env.example`](.env.example):
+
+| Variable | Description | Exposure |
+| :--- | :--- | :--- |
+| `NEXT_PUBLIC_APP_URL` | Canonical app URL (`http://localhost:3000` or production domain) | Public |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase API URL | Public |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase anon/publishable key | Public |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service-role key (server operations only) | Server Only |
+| `GOOGLE_SHEETS_SPREADSHEET_ID` | Google Sheets target spreadsheet ID | Server Only |
+| `GOOGLE_SHEETS_REGISTRATION_TAB` | Tab name for registration records | Server Only |
+| `GOOGLE_APPLICATION_CREDENTIALS` | Path to service account JSON key (local dev) | Server Only |
+| `GOOGLE_SERVICE_ACCOUNT_KEY` | Inline JSON or base64 service account key (production) | Server Only |
+| `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID` | Google Cloud OAuth Web Client ID | Server Only |
+| `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET` | Google Cloud OAuth Client Secret | Server Only |
+| `INTERNAL_SHEETS_SYNC_SECRET` | Secret token authenticating background sync worker | Server Only |
+
+---
+
+## 9. Testing & Quality Assurance
+
+The project contains a comprehensive automated regression suite:
 
 ```bash
-# Run local development server
-npm run dev
+# Run core registration & audit regression suite
+node tests/audit-runner.mjs
 
-# Check TypeScript static types
+# Run Google Sheets outbox & concurrency test
+npx jiti tests/google-sheets-outbox.ts
+
+# Run Google OAuth routing and destination tests
+npx jiti tests/oauth-routing.ts
+
+# Run automatic Sheets sync & outbox recovery test
+npx jiti tests/automatic-sync-phase-08-2.ts
+
+# Run endpoint hardening & RBAC security suite
+npx jiti tests/phase-08-3-hardening.ts
+
+# Run dedicated worker secret isolation test
+npx jiti tests/phase-08-4-dedicated-secret.ts
+
+# Run complete Phase 09 real admin membership test suite
+npx jiti tests/admin-membership-phase-09.ts
+
+# Run static type checking
 npm run typecheck
 
-# Build optimized production bundle
+# Run ESLint validation
+npm run lint
+
+# Build production bundle
 npm run build
 ```
 
 ---
 
-## 5. End-to-End Presentation Flow (Section 61)
+## 10. Project Structure
 
-1. **Public**: Open homepage → Explore projects and workshops → Click "Apply to Join".
-2. **Applicant**: Complete 6-step recruitment wizard → Submit → View live pipeline status.
-3. **Student**: Switch to "Student" in demo bar → View dashboard → Check active tasks → Open Track 2 Module 202 → Inspect Skill Tree → Request ESP32 borrow.
-4. **Teacher**: Switch to "Teacher" → Open Evaluation Center → Grade with rubric sliders → Approve hardware checkout → Rotate dynamic QR attendance.
-5. **Admin**: Switch to "Admin" → Advance candidate in Kanban → Open Hardware Inventory → Inspect Asset #ESP024 QR Code → Review audit trail.
-6. **Live Lab**: Open `/lab/live` → Inspect real-time fluctuating temperature, power, and MQTT raw payload stream.
-7. **Verify**: Open `/verify` → Search `IOT-2026-ESP32-0042` → View verified credential.
+```
+├── app/                        # Next.js App Router routes
+│   ├── admin/                  # Protected Admin & Membership review portal
+│   ├── api/                    # API routes (internal sync, audit)
+│   ├── auth/                   # Authentication callbacks and account pages
+│   ├── dashboard/              # Student dashboard
+│   ├── lab/                    # Hardware inventory & telemetry
+│   ├── learn/                  # LMS tracks & skill trees
+│   ├── projects/               # Projects & team recruitment
+│   └── teacher/                # Mentor evaluation center
+├── components/                 # UI components by domain
+│   ├── admin/                  # Admin portal & review modals
+│   ├── layout/                 # Navbar, banner, footer
+│   └── student/                # Student dashboard views
+├── docs/                       # Architectural specifications & audits
+├── lib/                        # Domain logic, store, and utilities
+│   ├── admin/                  # Admin data access & metrics
+│   ├── auth/                   # Session verification & route resolution
+│   └── integrations/           # Google Sheets adapter & outbox drain
+├── supabase/                   # Supabase configuration & migrations
+│   ├── migrations/             # Timestamped SQL schema migrations
+│   └── seed.sql                # Deterministic synthetic test seed
+├── tests/                      # End-to-end integration and security test suites
+├── utils/                      # SSR Supabase client utilities
+└── .env.example                # Safe environment variable template
+```
+
+---
+
+## 11. Deployment Architecture
+
+- **Frontend & Edge API**: Hosted on **Vercel** with automatic preview deployments on Pull Requests.
+- **Database**: **Supabase Cloud** PostgreSQL instance with automated backups and connection pooling.
+- **Background Cron**: Scheduled invocation of `/api/internal/google-sheets/sync` via Vercel Cron or Cloud Scheduler using `INTERNAL_SHEETS_SYNC_SECRET`.
+- **Identity Provider**: Google Cloud OAuth 2.0 Client credentials linked to Supabase Auth.
+
+---
+
+## 12. Contributing & Security Reporting
+
+### Contributing
+1. Fork or branch from `main`.
+2. Ensure all changes include corresponding tests under `tests/`.
+3. Verify that `npm run typecheck`, `npm run lint`, and all test suites pass cleanly.
+4. Submit a Pull Request targeting `main`.
+
+### Security Guidance
+If you discover a potential security vulnerability, please do NOT create a public issue. Instead, report it directly to the platform administrators or faculty mentors at `security@iotclub.example`.
+
+---
+
+## 13. License
+
+This project is open source and available under the [MIT License](LICENSE).

@@ -28,7 +28,7 @@ export default function AboutPage() {
         </p>
         <div className="flex justify-center gap-3 pt-2">
           <Link
-            href="/apply"
+            href="/register"
             className="px-5 py-2.5 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-xs shadow-xs transition"
           >
             Join IoT Club

@@ -79,7 +79,7 @@ export const Footer: React.FC = () => {
               </div>
 
               <Link
-                href="/apply"
+                href="/register"
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-xs shadow-xs shadow-emerald-500/30 transition"
               >
                 <span>Join IoT Club</span>
@@ -143,7 +143,7 @@ export const Footer: React.FC = () => {
             </h4>
             <ul className="space-y-2 text-xs">
               <li>
-                <Link href="/apply" className="hover:text-emerald-700 transition font-semibold text-emerald-600">Join Club</Link>
+                <Link href="/register" className="hover:text-emerald-700 transition font-semibold text-emerald-600">Join Club</Link>
               </li>
               <li>
                 <Link href="/opportunities" className="hover:text-emerald-700 transition">Hackathons</Link>
@@ -194,7 +194,7 @@ export const Footer: React.FC = () => {
                 <Link href="/admin" className="hover:text-emerald-700 transition">Admin Login</Link>
               </li>
               <li>
-                <Link href="/apply" className="hover:text-emerald-700 transition font-semibold text-emerald-600">
+                <Link href="/register" className="hover:text-emerald-700 transition font-semibold text-emerald-600">
                   Registration Portal
                 </Link>
               </li>

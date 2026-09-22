@@ -83,7 +83,6 @@ export const initialLabStatusBroadcast: LabStatusBroadcast = {
 
 export interface StoredUserCredential {
   user: AuthUser;
-  passwordHash: string;
 }
 
 export const initialAuthUsers: StoredUserCredential[] = [
@@ -98,7 +97,6 @@ export const initialAuthUsers: StoredUserCredential[] = [
       designation: "Student Member (Level 4 Builder)",
       portalRedirect: "/dashboard",
     },
-    passwordHash: "student123",
   },
   {
     user: {
@@ -110,7 +108,6 @@ export const initialAuthUsers: StoredUserCredential[] = [
       designation: "Faculty Coordinator & Evaluator",
       portalRedirect: "/teacher",
     },
-    passwordHash: "faculty123",
   },
   {
     user: {
@@ -122,7 +119,6 @@ export const initialAuthUsers: StoredUserCredential[] = [
       designation: "Club Technical Lead & Project Lead",
       portalRedirect: "/projects",
     },
-    passwordHash: "clublead123",
   },
   {
     user: {
@@ -134,24 +130,12 @@ export const initialAuthUsers: StoredUserCredential[] = [
       designation: "Super Administrator & Lab In-charge",
       portalRedirect: "/admin",
     },
-    passwordHash: "admin123",
   },
 ];
 
 interface IoTAppContextType {
   currentUser: AuthUser | null;
   isAuthenticated: boolean;
-  loginWithCollegeEmail: (
-    email: string,
-    password: string
-  ) => { success: boolean; error?: string; redirectUrl?: string; user?: AuthUser };
-  registerStudent: (data: {
-    email: string;
-    password: string;
-    name: string;
-    rollNumber: string;
-    department: string;
-  }) => { success: boolean; error?: string; redirectUrl?: string };
   logout: () => void;
   demoRole: DemoRole;
   setDemoRole: (role: DemoRole) => void;
@@ -222,7 +206,7 @@ interface IoTAppContextType {
   forceAssignHardware: (assetId: string, studentName: string, studentId: string, project: string, days: number) => void;
   forceReturnHardware: (assetId: string) => void;
   authUsers: StoredUserCredential[];
-  addUser: (userData: AuthUser, password?: string) => void;
+  addUser: (userData: AuthUser) => void;
   updateUser: (userId: string, updates: Partial<AuthUser>) => void;
   deleteUser: (userId: string) => void;
   changeUserRole: (userId: string, newRole: AuthRole) => void;
@@ -246,148 +230,10 @@ export function IoTAppProvider({ children }: { children: React.ReactNode }) {
   const [clubConfig, setClubConfigState] = useState<ClubConfig>(defaultClubConfig);
 
 
-  // Initialize session from localStorage on mount
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const saved = localStorage.getItem("iot_auth_user");
-        if (saved) {
-          const parsed = JSON.parse(saved) as AuthUser;
-          setCurrentUser(parsed);
-          if (parsed.role === "STUDENT") setDemoRoleState("student");
-          else if (parsed.role === "TEACHER") setDemoRoleState("teacher");
-          else if (parsed.role === "ADMIN") setDemoRoleState("admin");
-          else if (parsed.role === "CLUB_LEAD") setDemoRoleState("student");
-        } else {
-          setDemoRoleState("public");
-        }
-      } catch (err) {
-        console.error("Auth session load error:", err);
-      }
-    }
-  }, []);
-
-  // Login with College Email
-  const loginWithCollegeEmail = useCallback(
-    (email: string, password: string) => {
-      const cleanEmail = email.trim().toLowerCase();
-      const matched = authUsers.find(
-        (u) => u.user.email.toLowerCase() === cleanEmail && u.passwordHash === password
-      );
-
-      if (!matched) {
-        return {
-          success: false,
-          error: "Invalid College Email ID or password. Please verify your credentials.",
-        };
-      }
-
-      setCurrentUser(matched.user);
-      if (typeof window !== "undefined") {
-        localStorage.setItem("iot_auth_user", JSON.stringify(matched.user));
-      }
-
-      // Sync role
-      if (matched.user.role === "STUDENT") setDemoRoleState("student");
-      else if (matched.user.role === "TEACHER") setDemoRoleState("teacher");
-      else if (matched.user.role === "ADMIN") setDemoRoleState("admin");
-      else if (matched.user.role === "CLUB_LEAD") setDemoRoleState("student");
-
-      const logItem: AuditLogItem = {
-        id: `log-${Date.now()}`,
-        user: matched.user.name,
-        action: "USER_AUTHENTICATED",
-        entity: "AuthSession",
-        entityId: matched.user.id,
-        timestamp: new Date().toLocaleString(),
-        details: `Signed in as ${matched.user.role} (${matched.user.email})`,
-      };
-      setAuditLogs((prev) => [logItem, ...prev]);
-
-      return {
-        success: true,
-        redirectUrl: matched.user.portalRedirect,
-        user: matched.user,
-      };
-    },
-    [authUsers]
-  );
-
-  // Register Student with College Email
-  const registerStudent = useCallback(
-    (data: {
-      email: string;
-      password: string;
-      name: string;
-      rollNumber: string;
-      department: string;
-    }) => {
-      const cleanEmail = data.email.trim().toLowerCase();
-      if (!cleanEmail.includes("@") || !cleanEmail.includes(".")) {
-        return {
-          success: false,
-          error: "Please enter a valid email address.",
-        };
-      }
-
-      const existing = authUsers.find((u) => u.user.email.toLowerCase() === cleanEmail);
-      if (existing) {
-        return {
-          success: false,
-          error: "An account with this email already exists. Please sign in.",
-        };
-      }
-
-      const newAuthUser: AuthUser = {
-        id: `usr-std-${Date.now().toString(36)}`,
-        name: data.name.trim(),
-        email: cleanEmail,
-        role: "STUDENT",
-        department: data.department.trim() || "Information Technology",
-        rollNumber: data.rollNumber.trim() || "Pending (1st Year)",
-        designation: "Student Member (Level 1 Novice)",
-        portalRedirect: "/dashboard",
-      };
-
-      const newCredential: StoredUserCredential = {
-        user: newAuthUser,
-        passwordHash: data.password,
-      };
-
-      setAuthUsers((prev) => [...prev, newCredential]);
-      setCurrentUser(newAuthUser);
-      setDemoRoleState("student");
-
-      if (typeof window !== "undefined") {
-        localStorage.setItem("iot_auth_user", JSON.stringify(newAuthUser));
-      }
-
-      const logItem: AuditLogItem = {
-        id: `log-${Date.now()}`,
-        user: newAuthUser.name,
-        action: "STUDENT_REGISTERED",
-        entity: "AuthUser",
-        entityId: newAuthUser.id,
-        timestamp: new Date().toLocaleString(),
-        details: `Registered new student account with college email ${newAuthUser.email}`,
-      };
-      setAuditLogs((prev) => [logItem, ...prev]);
-
-      return {
-        success: true,
-        redirectUrl: "/dashboard",
-      };
-    },
-    [authUsers]
-  );
-
   // Logout
   const logout = useCallback(() => {
     setCurrentUser(null);
     setDemoRoleState("public");
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("iot_auth_user");
-    }
   }, []);
   const [tracks, setTracks] = useState<LearningTrack[]>(initialLearningTracks);
   const [skills, setSkills] = useState<SkillNode[]>(initialSkillNodes);
@@ -1251,10 +1097,9 @@ export function IoTAppProvider({ children }: { children: React.ReactNode }) {
   }, [currentUser]);
 
   // User & Role Directory CRUD
-  const addUser = useCallback((userData: AuthUser, password = "password123") => {
+  const addUser = useCallback((userData: AuthUser) => {
     const newCred: StoredUserCredential = {
       user: userData,
-      passwordHash: password,
     };
     setAuthUsers((prev) => [...prev, newCred]);
     const logItem: AuditLogItem = {
@@ -1431,8 +1276,6 @@ export function IoTAppProvider({ children }: { children: React.ReactNode }) {
       value={{
         currentUser,
         isAuthenticated: !!currentUser,
-        loginWithCollegeEmail,
-        registerStudent,
         logout,
         demoRole,
         setDemoRole,

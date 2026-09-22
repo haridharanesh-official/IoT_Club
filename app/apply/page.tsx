@@ -1,5 +1,5 @@
-import { RegistrationPortal } from "@/components/recruitment/RegistrationPortal";
+import { redirect } from 'next/navigation'
 
 export default function ApplyPage() {
-  return <RegistrationPortal />;
+  redirect('/register')
 }
