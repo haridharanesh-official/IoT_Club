@@ -7,6 +7,7 @@ import type {
   SheetSyncResult,
 } from './types'
 import { spreadsheetIdFingerprint } from './config'
+import { loadServiceAccountCredentialsFromEnv } from './client'
 import { mapApplicationToSheetRow } from './mapper'
 import { upsertRegistrationRow } from './registrations'
 
@@ -98,11 +99,14 @@ function addGoogleSheetsDiagnostic(
     return message
   }
 
+  const serviceAccountEmail =
+    loadServiceAccountCredentialsFromEnv()?.client_email || 'credentials-not-loaded'
+
   return (
     message +
     '\nDiagnostic: Google authenticated, but the target spreadsheet could not be opened. ' +
-    `Target=${spreadsheetIdFingerprint(config.spreadsheetId)}, tab="${config.sheetName}". ` +
-    'A Google Sheets 404 at this stage means the spreadsheet ID is wrong OR the service account used by GOOGLE_SERVICE_ACCOUNT_KEY has not been granted access to that spreadsheet.'
+    `Target=${spreadsheetIdFingerprint(config.spreadsheetId)}, tab="${config.sheetName}", serviceAccount=${serviceAccountEmail}. ` +
+    'A Google Sheets 404 at this stage means the spreadsheet ID is wrong OR this exact service account has not been granted access to that spreadsheet.'
   )
 }
 
