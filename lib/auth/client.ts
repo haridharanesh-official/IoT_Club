@@ -13,7 +13,13 @@ export function validateEmail(email: string) {
 }
 
 export function validatePassword(password: string) {
-  return password.length >= 8 && /[a-zA-Z]/.test(password) && /\d/.test(password)
+  return (
+    password.length >= 8 &&
+    /[a-z]/.test(password) &&
+    /[A-Z]/.test(password) &&
+    /\d/.test(password) &&
+    /[^A-Za-z0-9]/.test(password)
+  )
 }
 
 export type AuthResult = { ok: true; needsConfirmation?: boolean } | { ok: false; message: string }
@@ -37,7 +43,7 @@ export async function signUp(email: string, password: string): Promise<AuthResul
   const cleanEmail = normalizeEmail(email)
   if (!validateEmail(cleanEmail)) return { ok: false, message: 'Enter a valid email address.' }
   if (!validatePassword(password)) {
-    return { ok: false, message: 'Use at least 8 characters including letters and numbers.' }
+    return { ok: false, message: 'Use at least 8 characters with uppercase, lowercase, a number, and a special character.' }
   }
 
   try {
