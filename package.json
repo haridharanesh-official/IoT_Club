@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test:unit": "vitest run",
+    "test:unit": "vitest run tests/unit",
     "test:e2e": "playwright test",
     "sheets:sync": "npx jiti scripts/sync-sheets.ts"
   },
