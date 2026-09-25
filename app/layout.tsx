@@ -15,9 +15,6 @@ export const metadata: Metadata = {
   },
   description:
     "The Internet of Things Club at Sri Shakthi Institute of Engineering and Technology is a student technical community for IoT, embedded systems, robotics, automation, wireless communication, cloud and edge computing.",
-  alternates: {
-    canonical: "/",
-  },
   openGraph: {
     type: "website",
     url: siteUrl,
