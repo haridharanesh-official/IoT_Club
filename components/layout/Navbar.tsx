@@ -3,41 +3,62 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useIoTApp } from "@/lib/store";
-import { defaultClubConfig } from "@/lib/clubConfig";
+import { Cpu, Menu, X } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
-import {
-  Cpu,
-  Compass,
-  BookOpen,
-  FolderGit2,
-  Sliders,
-  CheckCircle,
-  Sparkles,
-  Menu,
-  X,
-  FileCheck2,
-  Terminal,
-  Layers,
-  ShieldCheck,
-} from "lucide-react";
+import { defaultClubConfig } from "@/lib/clubConfig";
+
+type SessionNav = {
+  role: "STUDENT" | "TEACHER" | "ADMIN" | "SUPER_ADMIN" | null;
+  membershipStatus: string | null;
+  username: string | null;
+};
 
 export const Navbar: React.FC = () => {
   const pathname = usePathname();
-  const { currentUser, isAuthenticated, logout, student } = useIoTApp();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [authEmail, setAuthEmail] = useState<string | null>(null);
+  const [session, setSession] = useState<SessionNav | null>(null);
 
   useEffect(() => {
-    const client = createClient();
+    const supabase = createClient();
     let active = true;
-    client.auth.getUser().then(({ data, error }) => {
-      if (active) setAuthEmail(error ? null : data.user?.email ?? null);
-    }).catch(() => {
-      if (active) setAuthEmail(null);
-    });
-    const { data: listener } = client.auth.onAuthStateChange((_event, session) => {
-      if (active) setAuthEmail(session?.user.email ?? null);
+
+    async function refreshSession() {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (!active) return;
+      if (error || !user) {
+        setSession(null);
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role,membership_status")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (!active) return;
+
+      const role = (["STUDENT", "TEACHER", "ADMIN", "SUPER_ADMIN"] as const)
+        .find((value) => value === profile?.role) ?? null;
+      let username: string | null = null;
+      if (role === "STUDENT" && profile?.membership_status === "APPROVED") {
+        const { data: student } = await supabase
+          .from("student_profiles")
+          .select("username")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (!active) return;
+        username = student?.username ?? null;
+      }
+      setSession({
+        role,
+        membershipStatus: profile?.membership_status ?? null,
+        username,
+      });
+    }
+
+    void refreshSession();
+    const { data: listener } = supabase.auth.onAuthStateChange(() => {
+      void refreshSession();
     });
     return () => {
       active = false;
@@ -45,218 +66,80 @@ export const Navbar: React.FC = () => {
     };
   }, []);
 
-  // Dynamic Navigation Items based on verified authentication & role
-  const getNavLinks = () => {
-    if (!isAuthenticated || !currentUser) {
-      return [
-        { label: "Home", href: "/" },
-        { label: "About", href: "/#about" },
-        { label: "Roadmap", href: "/#roadmap" },
-        { label: "IPDC Cell", href: "/opportunities" },
-      ];
+  const links = [{ label: "Home", href: "/" }, { label: "About", href: "/#about" }];
+  if (session?.role === "STUDENT") {
+    links.push(session.membershipStatus === "APPROVED"
+      ? { label: "Dashboard", href: "/dashboard" }
+      : { label: "Membership status", href: "/membership/status" });
+    if (session.membershipStatus === "APPROVED" && session.username) {
+      links.push({ label: "Profile", href: `/member/${session.username}` });
     }
-
-    switch (currentUser.role) {
-      case "TEACHER":
-        return [
-          { label: "Evaluations", href: "/teacher" },
-          { label: "Projects Review", href: "/projects" },
-          { label: "Hardware Approvals", href: "/teacher/hardware" },
-          { label: "Batch Analytics", href: "/teacher/analytics" },
-          { label: "Workshops", href: "/events" },
-        ];
-      case "CLUB_LEAD":
-        return [
-          { label: "Project Workspace", href: "/projects" },
-          { label: "Student Dashboard", href: "/dashboard" },
-          { label: "Teams & Recruitment", href: "/projects/teams" },
-          { label: "Live Lab Telemetry", href: "/lab/live" },
-          { label: "Challenges", href: "/challenges" },
-        ];
-      case "ADMIN":
-        return [
-          { label: "Admin Console", href: "/admin" },
-          { label: "Projects Governance", href: "/projects" },
-          { label: "Recruitment Kanban", href: "/admin/recruitment" },
-          { label: "Hardware Inventory", href: "/lab/inventory" },
-          { label: "Live Lab Telemetry", href: "/lab/live" },
-          { label: "Audit Logs", href: "/admin/audit" },
-          { label: "Verify Cert", href: "/verify" },
-        ];
-      case "STUDENT":
-      default:
-        return [
-          { label: "Dashboard", href: "/dashboard" },
-          { label: "Skill Tree", href: "/learn/skills" },
-          { label: "Projects", href: "/projects" },
-          { label: "IoT Lab", href: "/lab" },
-          { label: "Competitions", href: "/opportunities" },
-          { label: "Verify Cert", href: "/verify" },
-          { label: "Profile", href: `/member/${student.username}` },
-        ];
-    }
-  };
-
-  const navLinks = getNavLinks();
+  } else if (session?.role === "ADMIN" || session?.role === "SUPER_ADMIN") {
+    links.push({ label: "Membership", href: "/admin/membership" });
+  }
 
   return (
-    <>
-      <header className="w-full bg-white/85 border-b border-slate-200/80 sticky top-0 z-40 backdrop-blur-xl shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          {/* Brand Logo */}
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center text-white shadow-sm shadow-emerald-500/30 group-hover:scale-105 transition">
-              <Cpu className="w-5 h-5 font-bold" />
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-bold text-slate-900 text-base tracking-tight">
-                  {defaultClubConfig.clubName}
-                </span>
-                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-mono">
-                  IoT Club
-                </span>
-              </div>
-              <p className="text-[11px] text-emerald-600 tracking-wide font-medium hidden sm:block">
-                {defaultClubConfig.collegeName}
-              </p>
-            </div>
-          </Link>
-
-          {/* Desktop Nav Links */}
-          <nav className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => {
-              const isActive = pathname === link.href;
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-medium transition ${
-                    isActive
-                      ? "bg-emerald-50 text-emerald-800 border border-emerald-200/70 font-semibold"
-                      : "text-slate-600 hover:text-slate-950 hover:bg-slate-100/80"
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              );
-            })}
-          </nav>
-
-          {/* Right Action Icons */}
-          <div className="hidden lg:flex items-center gap-2.5">
-            {/* User Session or Sign In */}
-            {authEmail ? (
-              <Link href="/auth/account" className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs transition">Account</Link>
-            ) : isAuthenticated && currentUser ? (
-              <div className="flex items-center gap-2 pl-2 border-slate-200">
-                <Link
-                  href={currentUser.portalRedirect}
-                  className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-slate-50 border border-slate-200 hover:bg-slate-100 transition text-xs"
-                >
-                  <div className="w-6 h-6 rounded-lg bg-emerald-500 text-white font-bold text-[10px] flex items-center justify-center">
-                    {currentUser.name.slice(0, 2).toUpperCase()}
-                  </div>
-                  <div className="text-left">
-                    <span className="font-bold text-slate-900 block leading-tight truncate max-w-[110px]">
-                      {currentUser.name.split(" ")[0]}
-                    </span>
-                    <span className="text-[9px] font-mono text-emerald-700 font-bold block">
-                      {currentUser.role}
-                    </span>
-                  </div>
-                </Link>
-
-                <button
-                  onClick={logout}
-                  className="px-2.5 py-1.5 rounded-xl text-rose-600 hover:bg-rose-50 text-xs font-semibold transition cursor-pointer"
-                  title="Sign Out"
-                >
-                  Sign Out
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Link
-                  href="/register"
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs shadow-xs transition"
-                >
-                  <span>Apply to Join</span>
-                </Link>
-                <Link
-                  href="/login"
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs transition"
-                >
-                  <span>Login</span>
-                </Link>
-              </div>
-            )}
+    <header className="w-full bg-white/85 border-b border-slate-200/80 sticky top-0 z-40 backdrop-blur-xl shadow-xs">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-3 group">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center text-white shadow-sm">
+            <Cpu className="w-5 h-5" />
           </div>
+          <div>
+            <span className="font-bold text-slate-900 text-base tracking-tight">{defaultClubConfig.clubName}</span>
+            <p className="text-[11px] text-emerald-600 tracking-wide font-medium hidden sm:block">{defaultClubConfig.collegeName}</p>
+          </div>
+        </Link>
 
-          {/* Mobile Menu Toggle */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 cursor-pointer"
-            aria-label="Toggle navigation menu"
-          >
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
+        <nav aria-label="Primary navigation" className="hidden md:flex items-center gap-1">
+          {links.map((link) => (
+            <Link key={link.href} href={link.href}
+              className={`px-3 py-1.5 rounded-xl text-xs font-medium transition ${pathname === link.href ? "bg-emerald-50 text-emerald-800 border border-emerald-200/70" : "text-slate-600 hover:text-slate-950 hover:bg-slate-100/80"}`}>
+              {link.label}
+            </Link>
+          ))}
+        </nav>
+
+        <div className="hidden md:flex items-center gap-2">
+          {session ? (
+            <Link href="/auth/account" className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs">Account</Link>
+          ) : (
+            <>
+              <Link href="/register" className="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs">Apply to Join</Link>
+              <Link href="/login" className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs">Login</Link>
+            </>
+          )}
         </div>
 
-        {/* Mobile Nav Dropdown */}
-        {mobileMenuOpen && (
-          <div className="md:hidden border-t border-slate-200 bg-white/95 backdrop-blur-xl p-4 space-y-2 text-xs">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className="block px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 font-medium"
-              >
-                {link.label}
-              </Link>
-            ))}
+        <button type="button" onClick={() => setMobileMenuOpen((open) => !open)}
+          className="md:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100"
+          aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+          aria-expanded={mobileMenuOpen} aria-controls="mobile-navigation">
+          {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        </button>
+      </div>
 
-            <div className="pt-2 border-t border-slate-100">
-              {authEmail ? (
-                <Link href="/auth/account" onClick={() => setMobileMenuOpen(false)} className="block w-full text-center py-2 rounded-xl bg-slate-900 text-white font-bold">Account</Link>
-              ) : isAuthenticated && currentUser ? (
-                <div className="flex items-center justify-between pt-1">
-                  <span className="font-bold text-slate-800">
-                    {currentUser.name} ({currentUser.role})
-                  </span>
-                  <button
-                    onClick={() => {
-                      logout();
-                      setMobileMenuOpen(false);
-                    }}
-                    className="text-rose-600 font-bold"
-                  >
-                    Sign Out
-                  </button>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  <Link
-                    href="/register"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="block w-full text-center py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold transition"
-                  >
-                    Apply to Join
-                  </Link>
-                  <Link
-                    href="/login"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="block w-full text-center py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold transition"
-                  >
-                    Login
-                  </Link>
-                </div>
-              )}
-            </div>
+      {mobileMenuOpen && (
+        <nav id="mobile-navigation" aria-label="Mobile navigation" className="md:hidden border-t border-slate-200 bg-white p-4 space-y-2 text-xs">
+          {links.map((link) => (
+            <Link key={link.href} href={link.href} onClick={() => setMobileMenuOpen(false)}
+              className="block px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 font-medium">{link.label}</Link>
+          ))}
+          <div className="pt-2 border-t border-slate-100 flex gap-2">
+            {session ? (
+              <Link href="/auth/account" onClick={() => setMobileMenuOpen(false)}
+                className="block w-full text-center py-2 rounded-xl bg-slate-900 text-white font-bold">Account</Link>
+            ) : (
+              <>
+                <Link href="/register" onClick={() => setMobileMenuOpen(false)}
+                  className="block w-full text-center py-2 rounded-xl bg-emerald-500 text-white font-bold">Apply to Join</Link>
+                <Link href="/login" onClick={() => setMobileMenuOpen(false)}
+                  className="block w-full text-center py-2 rounded-xl bg-slate-900 text-white font-bold">Login</Link>
+              </>
+            )}
           </div>
-        )}
-      </header>
-    </>
+        </nav>
+      )}
+    </header>
   );
 };
