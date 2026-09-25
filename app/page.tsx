@@ -1,8 +1,31 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
+
+export const metadata: Metadata = {
+  title: { absolute: 'Internet of Things Club | Sri Shakthi Institute of Engineering and Technology' },
+  description: 'Student IoT, embedded systems, robotics and automation community at Sri Shakthi Institute of Engineering and Technology in Coimbatore.',
+  alternates: { canonical: '/' },
+}
+
+const organizationJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'Internet of Things Club',
+  url: 'https://iotclub.dpdns.org',
+  description: 'Student technical community for IoT, embedded systems, robotics, automation and connected systems at Sri Shakthi Institute of Engineering and Technology.',
+  parentOrganization: {
+    '@type': 'EducationalOrganization',
+    name: 'Sri Shakthi Institute of Engineering and Technology',
+  },
+}
 
 export default function HomePage() {
   return (
     <div className="bg-[#f4f6f8] text-slate-800">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+      />
       <section className="bg-gradient-to-br from-[#032b2b] via-[#064c43] to-emerald-700 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 space-y-7">
           <p className="text-xs font-mono uppercase tracking-widest text-emerald-200">Sri Shakthi Institute of Engineering and Technology</p>
