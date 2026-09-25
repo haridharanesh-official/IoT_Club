@@ -1,14 +1,41 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { IoTAppProvider } from "@/lib/store";
-import { AnnouncementBanner } from "@/components/layout/AnnouncementBanner";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 
+const siteUrl = "https://iotclub.dpdns.org";
+
 export const metadata: Metadata = {
-  title: "Internet of Things Club — Sri Shakthi Institute of Engineering and Technology",
+  metadataBase: new URL(siteUrl),
+  applicationName: "Internet of Things Club",
+  title: {
+    default: "Internet of Things Club | Sri Shakthi Institute of Engineering and Technology",
+    template: "%s | IoT Club SIET",
+  },
   description:
-    "A student-driven technical community focused on transforming ideas into intelligent, connected systems through IoT, Embedded Systems, Sensors, Microcontrollers, Wireless Communication, Robotics, Automation, Cloud Computing and Edge Computing.",
+    "The Internet of Things Club at Sri Shakthi Institute of Engineering and Technology is a student technical community for IoT, embedded systems, robotics, automation, wireless communication, cloud and edge computing.",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    url: siteUrl,
+    siteName: "Internet of Things Club — SIET",
+    title: "Internet of Things Club | Sri Shakthi Institute of Engineering and Technology",
+    description:
+      "Learn, build and collaborate on IoT, embedded systems, robotics, automation and connected systems at Sri Shakthi Institute of Engineering and Technology.",
+  },
+  twitter: {
+    card: "summary",
+    title: "Internet of Things Club | SIET",
+    description:
+      "Student IoT, embedded systems, robotics and automation community at Sri Shakthi Institute of Engineering and Technology.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({
@@ -23,7 +50,6 @@ export default function RootLayout({
         className="min-h-screen bg-[#f4f6f8] text-slate-800 flex flex-col antialiased selection:bg-emerald-200 selection:text-emerald-900"
       >
         <IoTAppProvider>
-          <AnnouncementBanner />
           <Navbar />
           <main className="flex-1 w-full">{children}</main>
           <Footer />
