@@ -320,7 +320,7 @@ export default function RegistrationForm({
     }
 
     if (!validatePassword(password)) {
-      setError('Use at least 8 characters with letters and numbers.')
+      setError('Use at least 8 characters with uppercase, lowercase, a number, and a special character.')
       return
     }
 
