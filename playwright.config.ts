@@ -6,7 +6,6 @@ export default defineConfig({
   use: {
     baseURL: 'http://127.0.0.1:3107',
     ...devices['Desktop Chrome'],
-    channel: 'chrome',
   },
   webServer: {
     command: 'npm run start -- --hostname 127.0.0.1 --port 3107',
