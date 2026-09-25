@@ -20,4 +20,4 @@ describe('authentication validation', () => {
     expect(validatePassword('NoSpecial1')).toBe(false)
     expect(validatePassword('Sh0rt!')).toBe(false)
   })
-}
+})
