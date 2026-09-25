@@ -171,7 +171,7 @@ export class HttpGoogleSheetsAdapter implements GoogleSheetsAdapter {
   ): Promise<{ rowNumber: number }> {
     const range = encodeURIComponent(`${sheetName}!A:AB`)
     const res = await this.fetchApi(
-      `${spreadsheetId}/values/${range}:append?valueInputOption=USER_ENTERED`,
+      `${spreadsheetId}/values/${range}:append?valueInputOption=RAW`,
       {
         method: 'POST',
         body: JSON.stringify({
@@ -192,7 +192,7 @@ export class HttpGoogleSheetsAdapter implements GoogleSheetsAdapter {
     values: (string | number)[]
   ): Promise<void> {
     const range = encodeURIComponent(`${sheetName}!A${rowIndex}:AB${rowIndex}`)
-    await this.fetchApi(`${spreadsheetId}/values/${range}?valueInputOption=USER_ENTERED`, {
+    await this.fetchApi(`${spreadsheetId}/values/${range}?valueInputOption=RAW`, {
       method: 'PUT',
       body: JSON.stringify({
         values: [values],
@@ -309,9 +309,8 @@ export async function getGoogleAccessToken(creds: ServiceAccountCredentials): Pr
 export function createGoogleSheetsAdapterFromEnv(): GoogleSheetsAdapter {
   const creds = loadServiceAccountCredentialsFromEnv()
   if (!creds) {
-    const filePath = process.env.GOOGLE_APPLICATION_CREDENTIALS || 'C:/Secure/IoT-Club/iot-club-sheets-dev.json'
     throw new Error(
-      `Google credentials not found at "${filePath}". To enable live Google Sheets synchronization, please place your Service Account JSON key at that location or set GOOGLE_SERVICE_ACCOUNT_KEY.`
+      'Google service account credentials are not configured. Set GOOGLE_SERVICE_ACCOUNT_KEY or GOOGLE_APPLICATION_CREDENTIALS on the server.'
     )
   }
   return new HttpGoogleSheetsAdapter(() => getGoogleAccessToken(creds))
