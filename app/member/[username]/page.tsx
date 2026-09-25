@@ -3,14 +3,6 @@ import Link from "next/link";
 import { getPublicMemberProfile } from "@/lib/student/dashboard";
 import { GithubIcon, LinkedinIcon } from "@/components/icons/SocialIcons";
 import {
-  Award,
-  Cpu,
-  Layers,
-  Sparkles,
-  Zap,
-  ExternalLink,
-  CheckCircle2,
-  FolderGit2,
   ShieldCheck,
   Globe,
   User,
@@ -75,12 +67,12 @@ export default async function MemberProfilePage({ params }: MemberProfilePagePro
                 <h1 className="text-2xl sm:text-3xl font-extrabold text-white">{member.fullName}</h1>
                 <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 text-xs font-mono font-bold flex items-center gap-1">
                   <ShieldCheck className="w-3 h-3 text-emerald-400" />
-                  <span>VERIFIED MEMBER</span>
+                  <span>APPROVED MEMBER</span>
                 </span>
               </div>
-              <p className="text-sm text-emerald-300 font-medium mt-1">
-                {member.headline || "IoT Club Member • Hardware & Firmware Specialist"}
-              </p>
+              {member.headline && (
+                <p className="text-sm text-emerald-300 font-medium mt-1">{member.headline}</p>
+              )}
               {member.bio && (
                 <p className="text-xs text-slate-200 mt-2 max-w-xl leading-relaxed">{member.bio}</p>
               )}
@@ -125,103 +117,34 @@ export default async function MemberProfilePage({ params }: MemberProfilePagePro
         </div>
 
         {/* Academic Profile Strip */}
+        {(member.department || member.degreeProgramme || member.yearOfStudy || member.batch) && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-8 pt-6 border-t border-emerald-800/60 text-xs">
-          <div>
+          {member.department && <div>
             <div className="text-[10px] font-mono text-emerald-300 uppercase">Department</div>
             <div className="text-sm font-bold text-white font-mono mt-0.5">
-              {member.department || "IoT Club"}
+              {member.department}
             </div>
-          </div>
-          <div>
+          </div>}
+          {member.degreeProgramme && <div>
             <div className="text-[10px] font-mono text-emerald-300 uppercase">Degree Programme</div>
             <div className="text-sm font-bold text-white font-mono mt-0.5">
-              {member.degreeProgramme || "Engineering"}
+              {member.degreeProgramme}
             </div>
-          </div>
-          <div>
+          </div>}
+          {member.yearOfStudy && <div>
             <div className="text-[10px] font-mono text-emerald-300 uppercase">Academic Year</div>
             <div className="text-sm font-bold text-white font-mono mt-0.5">
-              {member.yearOfStudy ? `Year ${member.yearOfStudy}` : "Active"}
+              {`Year ${member.yearOfStudy}`}
             </div>
-          </div>
-          <div>
+          </div>}
+          {member.batch && <div>
             <div className="text-[10px] font-mono text-emerald-300 uppercase">Batch</div>
             <div className="text-sm font-bold text-white font-mono mt-0.5">
-              {member.batch || "2024-2028"}
+              {member.batch}
             </div>
-          </div>
+          </div>}
         </div>
-      </div>
-
-      {/* Verified Skills & Interests */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 p-6 sm:p-8 rounded-3xl glass-card space-y-6">
-          <div className="flex items-center justify-between">
-            <h3 className="font-bold text-slate-900 text-base">Verified Technical Competencies</h3>
-            <span className="text-[11px] font-mono text-emerald-700 font-bold">Faculty Evaluated</span>
-          </div>
-
-          {member.skills.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {member.skills.map((skill, idx) => (
-                <span
-                  key={idx}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-medium border flex items-center gap-1.5 ${
-                    skill.category === "HARDWARE"
-                      ? "bg-amber-50 text-amber-900 border-amber-200"
-                      : skill.category === "PROGRAMMING"
-                      ? "bg-sky-50 text-sky-900 border-sky-200"
-                      : "bg-emerald-50 text-emerald-900 border-emerald-200"
-                  }`}
-                >
-                  <span className="font-bold">{skill.skill}</span>
-                  <span className="text-[10px] opacity-70 font-mono uppercase">
-                    ({skill.level.toLowerCase()})
-                  </span>
-                </span>
-              ))}
-            </div>
-          ) : (
-            <p className="text-xs text-slate-500">Technical skills in assessment.</p>
-          )}
-
-          {member.interests.length > 0 && (
-            <div className="pt-4 border-t border-slate-100 space-y-2">
-              <span className="text-xs font-bold text-slate-700 block">Areas of Specialization:</span>
-              <div className="flex flex-wrap gap-2">
-                {member.interests.map((interest, idx) => (
-                  <span
-                    key={idx}
-                    className="px-3 py-1 rounded-xl text-xs font-medium bg-purple-50 text-purple-900 border border-purple-200"
-                  >
-                    {interest}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Credentials / Verification */}
-        <div className="p-6 rounded-3xl glass-card space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-bold text-slate-900 text-base">Verified Credential</h3>
-            <Link href="/verify" className="text-xs text-emerald-700 font-bold hover:underline">
-              Verify
-            </Link>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="font-mono text-[10px] text-emerald-700 font-bold">
-                {member.registrationId || "IOT-MEMBER"}
-              </span>
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            </div>
-            <div className="font-bold text-slate-900">IoT Club Foundation Membership</div>
-            <div className="text-[11px] text-slate-500">Verified On-Campus Active Status</div>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Projects Showcase */}
