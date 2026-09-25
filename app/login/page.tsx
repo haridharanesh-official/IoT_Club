@@ -68,12 +68,12 @@ export default function LoginPage() {
             <Cpu className="w-6 h-6" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Sri Shakthi IoT Club Portal</h1>
-          <p className="text-xs text-slate-500 max-w-sm mx-auto">Sign in with your registered college email and password to access your IoT Club account.</p>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto">Sign in with the email used for your IoT Club account.</p>
         </div>
 
         <div className="bg-white rounded-3xl border border-slate-200/90 shadow-xl overflow-hidden">
           <div className="border-b border-slate-100 bg-slate-50/70 py-3 px-6 text-xs font-bold text-slate-700">
-            Sign In with College Email
+            Sign In
           </div>
 
           <div className="p-6 sm:p-8 space-y-6">
@@ -128,7 +128,7 @@ export default function LoginPage() {
 
               <div>
                 <label htmlFor="auth-email" className="block text-slate-700 font-semibold mb-1">
-                  College Email Address *
+                  Email Address *
                 </label>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
@@ -138,7 +138,7 @@ export default function LoginPage() {
                     autoComplete="email"
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
-                    placeholder="your.name@college.example"
+                    placeholder="you@example.com"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-slate-900 focus:outline-none focus:border-emerald-500 focus:bg-white font-medium"
                   />
                 </div>
