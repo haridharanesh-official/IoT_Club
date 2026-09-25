@@ -1,6 +1,11 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 
-export const metadata = { title: 'Participation guidelines — IoT Club' }
+export const metadata: Metadata = {
+  title: 'Participation guidelines',
+  description: 'Participation expectations for IoT Club membership and activities.',
+  alternates: { canonical: '/club-rules' },
+}
 
 export default function ClubRulesPage() {
   return (
