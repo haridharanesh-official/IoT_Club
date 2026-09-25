@@ -1,5 +1,5 @@
-import { LabPortal } from "@/components/lab/LabPortal";
+import { UnavailableFeature } from '@/components/public/UnavailableFeature'
 
-export default function LabPage() {
-  return <LabPortal />;
+export default function Page() {
+  return <UnavailableFeature title="IoT Lab" detail="Lab inventory and checkout are unavailable here until physical asset records and permissions are verified." />
 }
