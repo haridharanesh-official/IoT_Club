@@ -1,5 +1,5 @@
-import { TeacherPortal } from "@/components/teacher/TeacherPortal";
+import { UnavailableFeature } from '@/components/public/UnavailableFeature'
 
-export default function TeacherHardwarePage() {
-  return <TeacherPortal />;
+export default function Page() {
+  return <UnavailableFeature title="Hardware approvals" detail="Hardware approval actions are unavailable until current asset and request records are connected." />
 }
