@@ -1,5 +1,12 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { defaultClubConfig } from '@/lib/clubConfig'
+
+export const metadata: Metadata = {
+  title: 'About',
+  description: 'About the Internet of Things Club at Sri Shakthi Institute of Engineering and Technology and its focus on connected systems learning and engineering projects.',
+  alternates: { canonical: '/about' },
+}
 
 export default function AboutPage() {
   return (
