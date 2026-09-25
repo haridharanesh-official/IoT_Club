@@ -1,6 +1,12 @@
+import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import RegistrationForm from './registration-form'
+
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+}
 
 export const dynamic = 'force-dynamic'
 
