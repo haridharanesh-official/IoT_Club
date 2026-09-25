@@ -1,6 +1,11 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 
-export const metadata = { title: 'Privacy notice — IoT Club' }
+export const metadata: Metadata = {
+  title: 'Privacy notice',
+  description: 'How the IoT Club registration platform handles membership application information.',
+  alternates: { canonical: '/privacy' },
+}
 
 export default function PrivacyPage() {
   return (
