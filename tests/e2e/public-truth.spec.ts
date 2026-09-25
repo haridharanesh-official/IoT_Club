@@ -18,3 +18,25 @@ test('public landing page has no critical axe violations', async ({ page }) => {
   const results = await new AxeBuilder({ page }).analyze()
   expect(results.violations.filter((violation) => violation.impact === 'critical')).toEqual([])
 })
+
+
+test('security headers and crawl controls are present', async ({ page, request }) => {
+  const response = await page.goto('/')
+  expect(response?.headers()['x-content-type-options']).toBe('nosniff')
+  expect(response?.headers()['x-frame-options']).toBe('DENY')
+  expect(response?.headers()['referrer-policy']).toBe('strict-origin-when-cross-origin')
+
+  const robots = await request.get('/robots.txt')
+  expect(robots.ok()).toBe(true)
+  const robotsText = await robots.text()
+  expect(robotsText).toContain('Disallow: /admin/')
+  expect(robotsText).toContain('Disallow: /register')
+  expect(robotsText).toContain('Sitemap: https://iotclub.dpdns.org/sitemap.xml')
+
+  const sitemap = await request.get('/sitemap.xml')
+  expect(sitemap.ok()).toBe(true)
+  const sitemapText = await sitemap.text()
+  expect(sitemapText).toContain('https://iotclub.dpdns.org/about')
+  expect(sitemapText).not.toContain('/login')
+  expect(sitemapText).not.toContain('/register')
+})
