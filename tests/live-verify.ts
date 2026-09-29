@@ -46,7 +46,7 @@ async function main() {
   }
 
   console.log('\nHeader validation: PASS')
-  console.log('Exact 28-column header contract verified against live Google Sheet!')
+  console.log('Exact 27-column header contract verified against live Google Sheet!')
 }
 
 main().catch((err) => {

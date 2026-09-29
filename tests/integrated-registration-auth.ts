@@ -404,14 +404,13 @@ async function runIntegratedRegistrationAuthTests() {
       interests: interests || [],
       skills: skills || [],
     })
-    assert.equal(row.length, 28, 'Canonical 28 columns (A:AB) verified')
+    assert.equal(row.length, 27, 'Canonical 27 columns (A:AA) verified')
     assert.equal(row[0], generatedRegistrationId, 'Col A: Registration ID')
     assert.equal(row[1], SYNTHETIC_STUDENT.rollNumber, 'Col B: Roll Number')
     assert.equal(row[10], SYNTHETIC_STUDENT.emailAddress, 'Col K uses account email')
-    assert.equal(row[11], SYNTHETIC_STUDENT.emailAddress, 'Col L uses the same account email')
-    assert.equal(row[22], 'PENDING', 'Col W: PENDING status')
+    assert.equal(row[21], 'PENDING', 'Col V: PENDING status')
     assert.ok(!JSON.stringify(row).includes(pass), 'Password NEVER present in Google Sheet row')
-    console.log('✓ TEST 9 PASSED: Local 28-column mapping has one email and no password.')
+    console.log('✓ TEST 9 PASSED: Local 27-column mapping has one email and no password.')
 
     // -----------------------------------------------------------
     // TEST 10: ROUTE GUARDS FOR PENDING STUDENT

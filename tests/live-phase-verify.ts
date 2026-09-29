@@ -93,7 +93,7 @@ async function runLiveVerification() {
   assert.equal(headerValidation.valid, true, `Headers valid: ${headerValidation.error}`)
   report.headerValidation = 'PASS'
   console.log('3. Spreadsheet access: PASS')
-  console.log('4. Header validation: PASS (Exact 28 columns verified)')
+  console.log('4. Header validation: PASS (Exact 27 columns verified)')
 
   // Clear any existing pending outbox logs so this run isolates the synthetic user
   await supabase.from('sheet_sync_logs').update({ sync_status: 'SYNCED' })
@@ -197,8 +197,8 @@ async function runLiveVerification() {
   assert.equal(matchedRows.length, 1, `Exactly 1 row expected in Google Sheet for ${registrationId}, found ${matchedRows.length}`)
   console.log(`Found exactly 1 row for ${registrationId} in Google Sheet!`)
 
-  // 5. Step 8: Verify all 28 columns A:AB
-  console.log('\n--- STEP 8: VERIFY A:AB COLUMNS ---')
+  // 5. Step 8: Verify all 27 columns A:AA
+  console.log('\n--- STEP 8: VERIFY A:AA COLUMNS ---')
   const actualRow = matchedRows[0]
   const fullData = await fetchFullApplicationData(supabase, application.id)
 
@@ -213,24 +213,23 @@ async function runLiveVerification() {
     H: { col: 'H', name: 'Section', expected: 'A', actual: actualRow[7], match: actualRow[7] === 'A' },
     I: { col: 'I', name: 'Batch', expected: '2025-2029', actual: actualRow[8], match: actualRow[8] === '2025-2029' },
     J: { col: 'J', name: 'Mobile Number', expected: '9876543210', actual: actualRow[9], match: actualRow[9] === '9876543210' },
-    K: { col: 'K', name: 'College Email', expected: studentEmail, actual: actualRow[10], match: actualRow[10] === studentEmail },
-    L: { col: 'L', name: 'Personal Email', expected: 'sheets.live.001@example.com', actual: actualRow[11], match: actualRow[11] === 'sheets.live.001@example.com' },
-    M: { col: 'M', name: 'Gender', expected: 'Male', actual: actualRow[12], match: actualRow[12] === 'Male' },
-    N: { col: 'N', name: 'Areas of Interest', expected: 'Cybersecurity, Internet of Things', actual: actualRow[13], match: actualRow[13] === 'Cybersecurity, Internet of Things' },
-    O: { col: 'O', name: 'Skill Level', expected: 'INTERMEDIATE', actual: actualRow[14], match: actualRow[14] === 'INTERMEDIATE' },
-    P: { col: 'P', name: 'Previous IoT Experience', expected: 'Yes', actual: actualRow[15], match: actualRow[15] === 'Yes' },
-    Q: { col: 'Q', name: 'Programming Skills', expected: 'Python', actual: actualRow[16], match: actualRow[16] === 'Python' },
-    R: { col: 'R', name: 'Hardware Skills', expected: 'ESP32', actual: actualRow[17], match: actualRow[17] === 'ESP32' },
-    S: { col: 'S', name: 'Technology Skills', expected: 'MQTT', actual: actualRow[18], match: actualRow[18] === 'MQTT' },
-    T: { col: 'T', name: 'GitHub URL', expected: 'https://github.com/live-test-student', actual: actualRow[19], match: actualRow[19] === 'https://github.com/live-test-student' },
-    U: { col: 'U', name: 'LinkedIn URL', expected: 'https://linkedin.com/in/live-test-student', actual: actualRow[20], match: actualRow[20] === 'https://linkedin.com/in/live-test-student' },
-    V: { col: 'V', name: 'Portfolio URL', expected: 'https://live-test.example.com', actual: actualRow[21], match: actualRow[21] === 'https://live-test.example.com' },
-    W: { col: 'W', name: 'Membership Status', expected: 'PENDING', actual: actualRow[22], match: actualRow[22] === 'PENDING' },
-    X: { col: 'X', name: 'Submitted At', expected: new Date(application.submitted_at).toISOString(), actual: actualRow[23], match: Boolean(actualRow[23]) },
-    Y: { col: 'Y', name: 'Reviewed At', expected: '', actual: actualRow[24] || '', match: (actualRow[24] || '') === '' },
-    Z: { col: 'Z', name: 'Reviewed By', expected: '', actual: actualRow[25] || '', match: (actualRow[25] || '') === '' },
-    AA: { col: 'AA', name: 'Review Notes', expected: '', actual: actualRow[26] || '', match: (actualRow[26] || '') === '' },
-    AB: { col: 'AB', name: 'Last Synced At', expected: 'ISO date', actual: actualRow[27], match: Boolean(actualRow[27]) },
+    K: { col: 'K', name: 'Email Address', expected: studentEmail, actual: actualRow[10], match: actualRow[10] === studentEmail },
+    L: { col: 'L', name: 'Gender', expected: 'Male', actual: actualRow[11], match: actualRow[11] === 'Male' },
+    M: { col: 'M', name: 'Areas of Interest', expected: 'Cybersecurity, Internet of Things', actual: actualRow[12], match: actualRow[12] === 'Cybersecurity, Internet of Things' },
+    N: { col: 'N', name: 'Skill Level', expected: 'INTERMEDIATE', actual: actualRow[13], match: actualRow[13] === 'INTERMEDIATE' },
+    O: { col: 'O', name: 'Previous IoT Experience', expected: 'Yes', actual: actualRow[14], match: actualRow[14] === 'Yes' },
+    P: { col: 'P', name: 'Programming Skills', expected: 'Python', actual: actualRow[15], match: actualRow[15] === 'Python' },
+    Q: { col: 'Q', name: 'Hardware Skills', expected: 'ESP32', actual: actualRow[16], match: actualRow[16] === 'ESP32' },
+    R: { col: 'R', name: 'Technology Skills', expected: 'MQTT', actual: actualRow[17], match: actualRow[17] === 'MQTT' },
+    S: { col: 'S', name: 'GitHub URL', expected: 'https://github.com/live-test-student', actual: actualRow[18], match: actualRow[18] === 'https://github.com/live-test-student' },
+    T: { col: 'T', name: 'LinkedIn URL', expected: 'https://linkedin.com/in/live-test-student', actual: actualRow[19], match: actualRow[19] === 'https://linkedin.com/in/live-test-student' },
+    U: { col: 'U', name: 'Portfolio URL', expected: 'https://live-test.example.com', actual: actualRow[20], match: actualRow[20] === 'https://live-test.example.com' },
+    V: { col: 'V', name: 'Membership Status', expected: 'PENDING', actual: actualRow[21], match: actualRow[21] === 'PENDING' },
+    W: { col: 'W', name: 'Submitted At', expected: new Date(application.submitted_at).toISOString(), actual: actualRow[22], match: Boolean(actualRow[22]) },
+    X: { col: 'X', name: 'Reviewed At', expected: '', actual: actualRow[23] || '', match: (actualRow[23] || '') === '' },
+    Y: { col: 'Y', name: 'Reviewed By', expected: '', actual: actualRow[24] || '', match: (actualRow[24] || '') === '' },
+    Z: { col: 'Z', name: 'Review Notes', expected: '', actual: actualRow[25] || '', match: (actualRow[25] || '') === '' },
+    AA: { col: 'AA', name: 'Last Synced At', expected: 'ISO date', actual: actualRow[26], match: Boolean(actualRow[26]) },
   }
 
   const columnVerification: Record<string, string> = {}

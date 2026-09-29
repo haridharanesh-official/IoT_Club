@@ -63,7 +63,7 @@ async function runTests() {
   assert.equal(rowsAfter1.length, 2, 'Should have header row + 1 data row')
   assert.equal(rowsAfter1[0][0], 'Registration ID', 'Header row starts with Registration ID')
   assert.equal(rowsAfter1[1][0], testApp.registration_id, 'Data row column A matches registration ID')
-  assert.equal(rowsAfter1[1].length, REGISTRATIONS_SHEET_HEADERS.length, 'Row has exact 28 columns')
+  assert.equal(rowsAfter1[1].length, REGISTRATIONS_SHEET_HEADERS.length, 'Row has exact 27 columns')
 
   const { data: log1 } = await supabase
     .from('sheet_sync_logs')
@@ -72,7 +72,7 @@ async function runTests() {
     .single()
   assert.equal(log1.sync_status, 'SYNCED', 'Outbox status should be SYNCED')
   assert.ok(log1.synced_at, 'synced_at should be recorded')
-  console.log('✓ TEST 1 PASSED: Appended row successfully with 28 columns.\n')
+  console.log('✓ TEST 1 PASSED: Appended row successfully with 27 columns.\n')
   testResults.test1_append = true
 
   // --------------------------------------------------------------------------
@@ -114,9 +114,9 @@ async function runTests() {
   assert.equal(sync3.operation, 'UPDATE', 'Status change must update existing row')
   const rowsAfter3 = await adapter.getAllRows(config.spreadsheetId, config.sheetName)
   assert.equal(rowsAfter3.length, 2, 'Row count remains 2')
-  assert.equal(rowsAfter3[1][22], 'APPROVED', 'Column W (Membership Status) must be updated to APPROVED')
-  assert.ok(rowsAfter3[1][24], 'Column Y (Reviewed At) must be populated')
-  assert.equal(rowsAfter3[1][26], 'Automated test approval note', 'Column AA (Review Notes) updated')
+  assert.equal(rowsAfter3[1][21], 'APPROVED', 'Column V (Membership Status) must be updated to APPROVED')
+  assert.ok(rowsAfter3[1][23], 'Column X (Reviewed At) must be populated')
+  assert.equal(rowsAfter3[1][25], 'Automated test approval note', 'Column Z (Review Notes) updated')
   console.log('✓ TEST 3 PASSED: Approval updated existing row in place with status and notes.\n')
   testResults.test3_status_change_update = true
 

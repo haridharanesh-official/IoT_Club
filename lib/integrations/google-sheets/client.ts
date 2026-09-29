@@ -65,7 +65,7 @@ export class HttpGoogleSheetsAdapter implements GoogleSheetsAdapter {
   }
 
   async getHeaders(spreadsheetId: string, sheetName: string): Promise<string[]> {
-    const range = encodeURIComponent(`${sheetName}!A1:AB1`)
+    const range = encodeURIComponent(`${sheetName}!A1:AA1`)
     const data = await this.fetchApi(`${spreadsheetId}/values/${range}`)
     return (data.values && data.values[0]) || []
   }
@@ -91,7 +91,7 @@ export class HttpGoogleSheetsAdapter implements GoogleSheetsAdapter {
     sheetName: string,
     values: (string | number)[]
   ): Promise<{ rowNumber: number }> {
-    const range = encodeURIComponent(`${sheetName}!A:AB`)
+    const range = encodeURIComponent(`${sheetName}!A:AA`)
     const res = await this.fetchApi(
       `${spreadsheetId}/values/${range}:append?valueInputOption=RAW`,
       {
@@ -113,7 +113,7 @@ export class HttpGoogleSheetsAdapter implements GoogleSheetsAdapter {
     rowIndex: number,
     values: (string | number)[]
   ): Promise<void> {
-    const range = encodeURIComponent(`${sheetName}!A${rowIndex}:AB${rowIndex}`)
+    const range = encodeURIComponent(`${sheetName}!A${rowIndex}:AA${rowIndex}`)
     await this.fetchApi(`${spreadsheetId}/values/${range}?valueInputOption=RAW`, {
       method: 'PUT',
       body: JSON.stringify({
@@ -123,7 +123,7 @@ export class HttpGoogleSheetsAdapter implements GoogleSheetsAdapter {
   }
 
   async getAllRows(spreadsheetId: string, sheetName: string): Promise<string[][]> {
-    const range = encodeURIComponent(`${sheetName}!A:AB`)
+    const range = encodeURIComponent(`${sheetName}!A:AA`)
     const data = await this.fetchApi(`${spreadsheetId}/values/${range}`)
     return data.values || []
   }

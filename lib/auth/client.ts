@@ -1,4 +1,12 @@
 import { createClient } from '../../utils/supabase/client'
+import {
+  AUTH_NETWORK_ERROR_MESSAGE,
+  classifySignupAuthError,
+  type AuthErrorLike,
+  type AuthFailureReason,
+} from './signup-errors'
+
+export { AUTH_NETWORK_ERROR_MESSAGE, classifySignupAuthError } from './signup-errors'
 
 export const ACCOUNT_PATH = '/auth/account'
 
@@ -16,7 +24,22 @@ export function validatePassword(password: string) {
   return password.length >= 8 && /[a-z]/.test(password) && /[A-Z]/.test(password) && /\d/.test(password) && /[^A-Za-z0-9]/.test(password)
 }
 
-export type AuthResult = { ok: true; needsConfirmation?: boolean } | { ok: false; message: string }
+export type AuthResult =
+  | { ok: true; needsConfirmation?: boolean }
+  | { ok: false; message: string; reason?: AuthFailureReason }
+
+function logSignupFailure(error: unknown, failureType: 'AUTH_ERROR' | 'NETWORK_FAILURE') {
+  if (process.env.NODE_ENV !== 'development') return
+  const candidate = error && typeof error === 'object' ? error as AuthErrorLike : {}
+  console.error('Supabase signup failed:', {
+    failureType,
+    name: candidate.name || 'UnknownError',
+    message: candidate.message || String(error),
+    status: candidate.status,
+    code: candidate.code,
+    navigatorOnline: typeof navigator !== 'undefined' ? navigator.onLine : undefined,
+  })
+}
 
 export async function signIn(email: string, password: string): Promise<AuthResult> {
   const cleanEmail = normalizeEmail(email)
@@ -45,26 +68,19 @@ export async function signUp(email: string, password: string): Promise<AuthResul
     const emailRedirectTo = new URL('/auth/confirm', origin).toString()
     const { data, error } = await createClient().auth.signUp({ email: cleanEmail, password, options: { emailRedirectTo } })
     if (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Supabase signup failed:', { message: error.message, status: error.status, code: error.code })
-      }
-      if (error.status === 0) return { ok: false, message: 'Authentication is temporarily unavailable. Please try again.' }
-      if (error.code === 'user_already_exists' || error.message.toLowerCase().includes('already registered')) {
-        return { ok: false, message: 'An account already exists with this email. Please log in instead.' }
-      }
-      if (error.code === 'email_address_invalid' || error.message.toLowerCase().includes('invalid email')) return { ok: false, message: 'Enter a valid email address.' }
-      if (error.code === 'weak_password' || error.message.toLowerCase().includes('password')) return { ok: false, message: error.message }
-      if (error.status === 429 || error.code === 'over_email_send_rate_limit' || error.message.toLowerCase().includes('rate limit')) return { ok: false, message: 'Too many attempts. Please wait and try again.' }
-      return { ok: false, message: 'Unable to create an account. Please try again.' }
+      const result = classifySignupAuthError(error)
+      logSignupFailure(error, result.reason === 'NETWORK_FAILURE' ? 'NETWORK_FAILURE' : 'AUTH_ERROR')
+      return result
     }
     // Supabase may deliberately return an empty identities array for an
     // existing confirmed user to avoid leaking account existence.
     if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
-      return { ok: false, message: 'An account already exists with this email. Please log in instead.' }
+      return { ok: false, reason: 'DUPLICATE_ACCOUNT', message: 'An account already exists with this email. Please log in instead.' }
     }
     return { ok: true, needsConfirmation: !data.session }
-  } catch {
-    return { ok: false, message: 'Authentication is temporarily unavailable. Please try again.' }
+  } catch (error) {
+    logSignupFailure(error, 'NETWORK_FAILURE')
+    return { ok: false, reason: 'NETWORK_FAILURE', message: AUTH_NETWORK_ERROR_MESSAGE }
   }
 }
 

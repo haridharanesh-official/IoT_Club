@@ -388,10 +388,10 @@ async function runBrowserReleaseReadinessTest() {
     assert.equal(row[2], SYNTHETIC_STUDENT.name, 'Col C matches full name')
     assert.equal(row[3], SYNTHETIC_STUDENT.department, 'Col D matches department')
     assert.equal(row[9], SYNTHETIC_STUDENT.mobile, 'Col J matches mobile')
-    assert.equal(row[10], SYNTHETIC_STUDENT.collegeEmail, 'Col K matches college email')
-    assert.equal(row[22], 'PENDING', 'Col W matches PENDING status')
-    assert.ok(row[23], 'Submitted At must be populated')
-    assert.ok(row[27], 'Last Synced At must be populated')
+    assert.equal(row[10], SYNTHETIC_STUDENT.collegeEmail, 'Col K matches email address')
+    assert.equal(row[21], 'PENDING', 'Col V matches PENDING status')
+    assert.ok(row[22], 'Submitted At must be populated')
+    assert.ok(row[26], 'Last Synced At must be populated')
 
     console.log(`✓ Section 9: Google Sheet row verified (Row ID: ${generatedRegistrationId}, Zero duplicates).`)
 

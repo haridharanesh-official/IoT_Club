@@ -350,7 +350,7 @@ export default function RegistrationForm({
       setConfirmPassword('')
 
       if (!result.ok) {
-        if (result.message.toLowerCase().includes('already exists') || result.message.toLowerCase().includes('already registered')) {
+        if (result.reason === 'DUPLICATE_ACCOUNT') {
           setExistingAccountSignIn(true)
           setError('An account with this email already exists. Enter your password below to sign in and link your application.')
         } else {
@@ -371,7 +371,7 @@ export default function RegistrationForm({
         }
       }
     } catch {
-      setError('Authentication service is temporarily unavailable. Please try again.')
+      setError("We couldn't reach the authentication service. Check your internet connection, VPN, ad blocker, or privacy extensions and try again.")
     } finally {
       setIsCreatingAccount(false)
     }

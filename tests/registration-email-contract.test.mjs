@@ -22,17 +22,17 @@ function applicationFor(email) {
 }
 
 for (const email of ['student@siet.ac.in', 'student@gmail.com', 'student@outlook.com']) {
-  test(`28-column sheet preserves one supplied email: ${email}`, () => {
+  test(`27-column sheet preserves one supplied email: ${email}`, () => {
     const row = mapApplicationToSheetRow(applicationFor(email), '2026-09-29T00:00:00Z')
-    assert.equal(REGISTRATIONS_SHEET_HEADERS.length, 28)
-    assert.equal(row.length, 28)
+    assert.equal(REGISTRATIONS_SHEET_HEADERS.length, 27)
+    assert.equal(row.length, 27)
     assert.equal(row[10], email)
-    assert.equal(row[11], email)
+    assert.equal(REGISTRATIONS_SHEET_HEADERS[10], 'Email Address')
   })
 }
 
 test('legacy missing personal email uses the authenticated profile email', () => {
   const data = applicationFor('student@gmail.com')
   data.studentProfile.personal_email = ''
-  assert.equal(mapApplicationToSheetRow(data)[11], 'student@gmail.com')
+  assert.equal(mapApplicationToSheetRow(data)[10], 'student@gmail.com')
 })
