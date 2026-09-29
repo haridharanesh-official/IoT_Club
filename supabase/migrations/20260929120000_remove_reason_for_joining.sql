@@ -31,6 +31,12 @@ declare
   function_definition text;
   updated_definition text;
 begin
+  if to_regprocedure(
+    'public.submit_membership_application_legacy_dual_email(jsonb)'
+  ) is null then
+    return;
+  end if;
+
   select pg_get_functiondef(
     'public.submit_membership_application_legacy_dual_email(jsonb)'::regprocedure
   ) into function_definition;
