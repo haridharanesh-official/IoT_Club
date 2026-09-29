@@ -213,7 +213,8 @@ async function runBrowserReleaseReadinessTest() {
     await page.fill('label:has-text("Date of birth") input', SYNTHETIC_STUDENT.dob)
     await page.fill('label:has-text("Gender") input', SYNTHETIC_STUDENT.gender)
     await page.fill('label:has-text("Mobile number") input', SYNTHETIC_STUDENT.mobile)
-    await page.fill('label:has-text("Personal email") input', SYNTHETIC_STUDENT.personalEmail)
+    await page.fill('#field-email-address', SYNTHETIC_STUDENT.collegeEmail)
+    assert.equal(await page.locator('input[type="email"]').count(), 1, 'Step 1 has one email input')
 
     // Click Continue to Step 2
     await page.click('button:has-text("Continue")')
@@ -287,7 +288,7 @@ async function runBrowserReleaseReadinessTest() {
     assert.ok(reviewContent.includes(SYNTHETIC_STUDENT.rollNumber), 'Review displays Register Number')
     assert.ok(reviewContent.includes(SYNTHETIC_STUDENT.department), 'Review displays Department')
     assert.ok(reviewContent.includes(SYNTHETIC_STUDENT.mobile), 'Review displays Mobile Number')
-    assert.ok(reviewContent.includes(SYNTHETIC_STUDENT.personalEmail), 'Review displays Personal Email')
+    assert.ok(reviewContent.includes(`Email Address: ${SYNTHETIC_STUDENT.collegeEmail}`), 'Review displays one email')
 
     // Negative test: submit without consent
     await page.click('button:has-text("Submit application")')

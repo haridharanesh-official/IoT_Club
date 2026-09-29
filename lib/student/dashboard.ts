@@ -105,7 +105,6 @@ export interface StudentDashboardData {
 }
 
 export interface PublicMemberProfile {
-  userId: string
   fullName: string
   username: string | null
   registrationId: string | null
@@ -423,10 +422,11 @@ export async function getPublicMemberProfile(
     auth: { persistSession: false, autoRefreshToken: false },
   })
 
-  // Look up in public_member_profiles view
+  // Public routes resolve usernames only. Legacy registration identifiers are
+  // deliberately not searchable or returned by the public projection.
   const { data: member, error } = await supabase
     .from('public_member_profiles')
-    .select('user_id,full_name,username,department,degree_programme,year_of_study,section,batch,headline,bio,github_url,linkedin_url,portfolio_url,created_at')
+    .select('full_name,username,department,degree_programme,year_of_study,section,batch,headline,bio,github_url,linkedin_url,portfolio_url,created_at')
     .eq('username', cleanId)
     .maybeSingle()
 
@@ -434,8 +434,45 @@ export async function getPublicMemberProfile(
     return null
   }
 
+  // Resolve the internal key only inside trusted server-side code. It is never
+  // included in the returned public profile.
+  const { data: internalProfile, error: internalProfileError } = await supabase
+    .from('student_profiles')
+    .select('user_id')
+    .eq('username', member.username)
+    .maybeSingle()
+
+  if (internalProfileError || !internalProfile) return null
+
+  const memberUserId = internalProfile.user_id
+
+  // Fetch public skills
+  const { data: skillsData } = await supabase
+    .from('student_skills')
+    .select('category, skill, level')
+    .eq('user_id', memberUserId)
+
+  const skills: StudentSkill[] = (skillsData || []).map((s) => ({
+    category: s.category as StudentSkill['category'],
+    skill: s.skill,
+    level: s.level as StudentSkill['level'],
+  }))
+
+  // Fetch public interests
+  const { data: interestsData } = await supabase
+    .from('student_interests')
+    .select('interest')
+    .eq('user_id', memberUserId)
+
+  const interests = (interestsData || []).map((i) => i.interest)
+
+  // Fetch public projects
+  const { data: ownedProjects } = await supabase
+    .from('projects')
+    .select('id, title, description, status')
+    .eq('owner_id', memberUserId)
+
   return {
-    userId: member.user_id,
     fullName: member.full_name || 'Club Member',
     username: member.username,
     registrationId: null,
@@ -451,8 +488,8 @@ export async function getPublicMemberProfile(
     linkedinUrl: member.linkedin_url,
     portfolioUrl: member.portfolio_url,
     createdAt: member.created_at,
-    skills: [],
-    interests: [],
-    projects: [],
+    skills,
+    interests,
+    projects: ownedProjects || [],
   }
 }

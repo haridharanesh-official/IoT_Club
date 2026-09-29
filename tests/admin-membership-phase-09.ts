@@ -6,7 +6,11 @@ import {
   getMembershipDashboardCounts,
   getApplicationAuditHistory,
 } from '../lib/admin/membership'
-import { drainGoogleSheetsOutbox } from '../lib/integrations/google-sheets'
+import {
+  processSheetSyncOutbox,
+  REGISTRATIONS_SHEET_NAME,
+} from '../lib/integrations/google-sheets'
+import { FakeGoogleSheetsAdapter } from './fixtures/fake-google-sheets-adapter'
 
 // Load environment variables
 const env = existsSync('.env.local')
@@ -39,6 +43,8 @@ async function runPhase09Tests() {
   console.log('========================================================\n')
 
   const results: Record<string, boolean> = {}
+  const sheetsAdapter = new FakeGoogleSheetsAdapter()
+  const sheetsConfig = { spreadsheetId: 'admin-membership-test-sheet', sheetName: REGISTRATIONS_SHEET_NAME }
 
   async function cleanUserByEmail(email: string) {
     const { data: usersData } = await adminService.auth.admin.listUsers()
@@ -212,10 +218,11 @@ async function runPhase09Tests() {
     throw new Error(`Failed to insert charlieAppRow: ${charlieInsertErr?.message}`)
   }
 
-  await adminService.from('student_interests').insert([
+  const { error: interestsErr } = await adminService.from('student_interests').insert([
     { user_id: charlieUser.id, interest: 'Internet of Things' },
-    { user_id: charlieUser.id, interest: 'Robotics' },
+    { user_id: charlieUser.id, interest: 'Embedded Systems' },
   ])
+  if (interestsErr) throw new Error(`Failed to insert interests: ${interestsErr.message}`)
 
   const { error: skillsErr } = await adminService.from('student_skills').insert([
     { user_id: charlieUser.id, category: 'PROGRAMMING', skill: 'C++', level: 'INTERMEDIATE' },
@@ -492,8 +499,9 @@ async function runPhase09Tests() {
   // TEST 12: Retry Sheets Sync (Worker drain)
   // -----------------------------------------------------------
   console.log('TEST 12: Retry Sheets Sync...')
-  // Drain outbox using service adapter
-  const drainResult = await drainGoogleSheetsOutbox(10)
+  // Drain through the deterministic in-memory adapter. Live Google credentials
+  // are intentionally not required for this database integration suite.
+  const drainResult = await processSheetSyncOutbox(adminService, sheetsAdapter, sheetsConfig, 10)
   assert.ok(drainResult.totalProcessed >= 1, 'Processed at least 1 record during drain')
   const { data: outboxDrained } = await adminService.from('sheet_sync_logs').select('*').eq('entity_id', charlieAppRow.id).single()
   assert.equal(outboxDrained.sync_status, 'SYNCED', 'Outbox record marked SYNCED')
@@ -658,7 +666,7 @@ async function runPhase09Tests() {
   // -----------------------------------------------------------
   console.log('TEST 20: Sheet Sync In-Place Integrity...')
   // Sync Eve's decision
-  await drainGoogleSheetsOutbox(10)
+  await processSheetSyncOutbox(adminService, sheetsAdapter, sheetsConfig, 10)
   const { data: eveOutbox } = await adminService.from('sheet_sync_logs').select('*').eq('entity_id', eveApp.id)
   assert.ok(eveOutbox, 'eveOutbox exists')
   assert.equal(eveOutbox!.length, 1, 'Exactly one outbox entry for application in sheet_sync_logs')

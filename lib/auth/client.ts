@@ -13,7 +13,7 @@ export function validateEmail(email: string) {
 }
 
 export function validatePassword(password: string) {
-  return password.length >= 8 && /[a-zA-Z]/.test(password) && /\d/.test(password)
+  return password.length >= 8 && /[a-z]/.test(password) && /[A-Z]/.test(password) && /\d/.test(password) && /[^A-Za-z0-9]/.test(password)
 }
 
 export type AuthResult = { ok: true; needsConfirmation?: boolean } | { ok: false; message: string }
@@ -37,17 +37,30 @@ export async function signUp(email: string, password: string): Promise<AuthResul
   const cleanEmail = normalizeEmail(email)
   if (!validateEmail(cleanEmail)) return { ok: false, message: 'Enter a valid email address.' }
   if (!validatePassword(password)) {
-    return { ok: false, message: 'Use at least 8 characters including letters and numbers.' }
+    return { ok: false, message: 'Use at least 8 characters including lowercase, uppercase, a number, and a symbol.' }
   }
 
   try {
-    const { data, error } = await createClient().auth.signUp({ email: cleanEmail, password })
+    const origin = typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000')
+    const emailRedirectTo = new URL('/auth/confirm', origin).toString()
+    const { data, error } = await createClient().auth.signUp({ email: cleanEmail, password, options: { emailRedirectTo } })
     if (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Supabase signup failed:', { message: error.message, status: error.status, code: error.code })
+      }
       if (error.status === 0) return { ok: false, message: 'Authentication is temporarily unavailable. Please try again.' }
       if (error.code === 'user_already_exists' || error.message.toLowerCase().includes('already registered')) {
-        return { ok: false, message: 'An account with this email already exists. Please sign in.' }
+        return { ok: false, message: 'An account already exists with this email. Please log in instead.' }
       }
+      if (error.code === 'email_address_invalid' || error.message.toLowerCase().includes('invalid email')) return { ok: false, message: 'Enter a valid email address.' }
+      if (error.code === 'weak_password' || error.message.toLowerCase().includes('password')) return { ok: false, message: error.message }
+      if (error.status === 429 || error.code === 'over_email_send_rate_limit' || error.message.toLowerCase().includes('rate limit')) return { ok: false, message: 'Too many attempts. Please wait and try again.' }
       return { ok: false, message: 'Unable to create an account. Please try again.' }
+    }
+    // Supabase may deliberately return an empty identities array for an
+    // existing confirmed user to avoid leaking account existence.
+    if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      return { ok: false, message: 'An account already exists with this email. Please log in instead.' }
     }
     return { ok: true, needsConfirmation: !data.session }
   } catch {
@@ -100,4 +113,3 @@ export async function signInWithGoogle(redirectTo?: string): Promise<AuthResult>
     return { ok: false, message: 'Google authentication is temporarily unavailable. Please try again.' }
   }
 }
-

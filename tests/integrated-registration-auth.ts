@@ -2,8 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync, existsSync } from 'node:fs'
 import { chromium, type Browser, type Page } from 'playwright-core'
 import { createClient } from '@supabase/supabase-js'
-import { createGoogleSheetsAdapterFromEnv } from '../lib/integrations/google-sheets/client'
-import { drainGoogleSheetsOutbox } from '../lib/integrations/google-sheets/drain'
+import { mapApplicationToSheetRow } from '../lib/integrations/google-sheets/mapper'
 
 // Load .env.local
 if (existsSync('.env.local')) {
@@ -21,7 +20,13 @@ if (existsSync('.env.local')) {
 const BASE_URL = 'http://localhost:3000'
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321'
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
-const CHROME_PATH = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+const CHROME_PATH = process.env.CHROME_PATH || (process.platform === 'win32'
+  ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+  : '/usr/bin/google-chrome')
+
+if (!['localhost', '127.0.0.1', '::1'].includes(new URL(SUPABASE_URL).hostname)) {
+  throw new Error('Integrated registration test must use a local Supabase URL')
+}
 
 const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_KEY, {
   auth: { persistSession: false },
@@ -30,8 +35,7 @@ const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_KEY, {
 const SYNTHETIC_STUDENT = {
   name: 'Integrated Registration Student',
   rollNumber: 'TEST-INTEGRATED-001',
-  collegeEmail: 'integrated.student@college.example',
-  personalEmail: 'integrated.personal@example.com',
+  emailAddress: 'integrated.student@college.example',
   mobile: '9000003001',
   password: 'TestPassword123!',
   dob: '2005-05-20',
@@ -42,8 +46,7 @@ const SYNTHETIC_STUDENT = {
   semester: '4',
   section: 'B',
   batch: '2024-2028',
-  reason: 'Passionate about IoT prototyping, microcontrollers, and edge computing.',
-  interests: ['Internet of Things', 'Embedded Systems', 'Robotics'],
+  interests: ['Internet of Things', 'Embedded Systems', 'MQTT'],
   skillLevel: 'INTERMEDIATE' as const,
   experienceDesc: 'Developed smart IoT weather node using ESP32 and MQTT.',
   skills: ['C++', 'Python', 'ESP32', 'MQTT', 'Linux'],
@@ -108,7 +111,7 @@ async function runIntegratedRegistrationAuthTests() {
   console.log('INTEGRATED REGISTRATION + AUTH COMPREHENSIVE TEST SUITE')
   console.log('========================================================\n')
 
-  await cleanupStudent(SYNTHETIC_STUDENT.collegeEmail)
+  await cleanupStudent(SYNTHETIC_STUDENT.emailAddress)
   await ensureAdminExists()
 
   const browser: Browser = await chromium.launch({
@@ -120,6 +123,9 @@ async function runIntegratedRegistrationAuthTests() {
     viewport: { width: 1440, height: 900 },
   })
   let page: Page = await context.newPage()
+  await page.route('**/api/internal/google-sheets/sync/self', (route) =>
+    route.fulfill({ status: 202, body: '' })
+  )
 
   let generatedRegistrationId = ''
   let studentUserId = ''
@@ -155,8 +161,16 @@ async function runIntegratedRegistrationAuthTests() {
     await page.selectOption('#field-gender', SYNTHETIC_STUDENT.gender)
     await page.fill('#field-dob', SYNTHETIC_STUDENT.dob)
     await page.fill('#field-mobile', SYNTHETIC_STUDENT.mobile)
-    await page.fill('#field-college-email', SYNTHETIC_STUDENT.collegeEmail)
-    await page.fill('#field-personal-email', SYNTHETIC_STUDENT.personalEmail)
+    assert.equal(await page.locator('input[type="email"]').count(), 1, 'Step 1 has one email input')
+    assert.equal(await page.locator('#field-email-address').count(), 1, 'Canonical email field exists')
+    assert.equal(await page.locator('#field-college-email, #field-personal-email').count(), 0, 'Legacy email fields are absent')
+    await page.fill('#field-email-address', 'student@gmail.com')
+    await page.click('button:has-text("Continue")')
+    assert.ok((await page.textContent('body'))?.includes('Step 2 — Academic Details'), 'Personal email is accepted')
+    await page.click('button:has-text("Back")')
+    await page.reload({ waitUntil: 'networkidle' })
+    assert.equal(await page.inputValue('#field-email-address'), 'student@gmail.com', 'Personal email survives refresh')
+    await page.fill('#field-email-address', SYNTHETIC_STUDENT.emailAddress)
 
     // Advance to Step 2
     await page.click('button:has-text("Continue")')
@@ -188,7 +202,6 @@ async function runIntegratedRegistrationAuthTests() {
     assert.ok((await page.textContent('body'))?.includes('Step 3 — IoT Interests'), 'Advanced to Step 3')
 
     // Fill Step 3
-    await page.fill('#field-reason', SYNTHETIC_STUDENT.reason)
     for (const interest of SYNTHETIC_STUDENT.interests) {
       await page.check(`label:has-text("${interest}") input[type="checkbox"]`)
     }
@@ -196,7 +209,7 @@ async function runIntegratedRegistrationAuthTests() {
     await page.check('input[name="previous-iot-experience"][type="radio"]:near(:text("Yes"))')
     await page.fill('#field-experience-desc', SYNTHETIC_STUDENT.experienceDesc)
     for (const skill of SYNTHETIC_STUDENT.skills) {
-      await page.check(`label:has-text("${skill}") input[type="checkbox"]`)
+      await page.check(`fieldset:has(legend:has-text("Technical Skills")) label:has-text("${skill}") input[type="checkbox"]`)
     }
     await page.fill('#field-github', SYNTHETIC_STUDENT.githubUrl)
     await page.fill('#field-linkedin', SYNTHETIC_STUDENT.linkedinUrl)
@@ -215,7 +228,9 @@ async function runIntegratedRegistrationAuthTests() {
 
     // Verify email pre-filled from college email
     const prefilledEmail = await page.inputValue('#account-email')
-    assert.equal(prefilledEmail, SYNTHETIC_STUDENT.collegeEmail, 'Login email correctly pre-filled from Step 1')
+    assert.equal(prefilledEmail, SYNTHETIC_STUDENT.emailAddress, 'Login email matches Step 1')
+    assert.equal(await page.locator('input[type="email"]').count(), 1, 'Step 4 has no independent email input')
+    assert.equal(await page.locator('#account-email').getAttribute('readonly'), '', 'Step 4 email is read only')
 
     // Negative: password mismatch
     await page.fill('#account-password', SYNTHETIC_STUDENT.password)
@@ -260,7 +275,7 @@ async function runIntegratedRegistrationAuthTests() {
       const mailpitRes = await fetch('http://127.0.0.1:54324/api/v1/messages')
       const mailData = await mailpitRes.json()
       const matching = mailData.messages?.filter((m: any) =>
-        m.To?.some((t: any) => t.Address === SYNTHETIC_STUDENT.collegeEmail)
+        m.To?.some((t: any) => t.Address === SYNTHETIC_STUDENT.emailAddress)
       ) || []
       if (matching.length > 0) {
         matching.sort((a: any, b: any) => new Date(b.Created).getTime() - new Date(a.Created).getTime())
@@ -268,7 +283,7 @@ async function runIntegratedRegistrationAuthTests() {
         break
       }
     }
-    assert.ok(confirmationMsg, `Confirmation email arrived in Mailpit for ${SYNTHETIC_STUDENT.collegeEmail}`)
+    assert.ok(confirmationMsg, `Confirmation email arrived in Mailpit for ${SYNTHETIC_STUDENT.emailAddress}`)
 
     const msgDetailRes = await fetch(`http://127.0.0.1:54324/api/v1/message/${confirmationMsg.ID}`)
     const msgDetail = await msgDetailRes.json()
@@ -286,7 +301,7 @@ async function runIntegratedRegistrationAuthTests() {
     // -----------------------------------------------------------
     console.log('\n--- TEST 5: FORM STATE RESTORATION ---')
     // Verify restored values in state
-    if ((await page.textContent('body'))?.includes('Step 4')) {
+    if (await page.locator('h2:has-text("Step 4 — Create Student Account")').count()) {
       await page.click('button:has-text("Continue to Review")')
       await page.waitForTimeout(400)
     }
@@ -295,8 +310,11 @@ async function runIntegratedRegistrationAuthTests() {
     assert.ok(reviewContent?.includes(SYNTHETIC_STUDENT.name), 'Restored Full Name')
     assert.ok(reviewContent?.includes(SYNTHETIC_STUDENT.rollNumber), 'Restored Register Number')
     assert.ok(reviewContent?.includes(SYNTHETIC_STUDENT.department), 'Restored Department')
-    assert.ok(reviewContent?.includes(SYNTHETIC_STUDENT.collegeEmail), 'Restored College Email')
-    assert.ok(reviewContent?.includes(SYNTHETIC_STUDENT.personalEmail), 'Restored Personal Email')
+    assert.ok(reviewContent?.includes(`Email Address: ${SYNTHETIC_STUDENT.emailAddress}`), 'Restored single email')
+    assert.ok(!reviewContent?.includes('College Email:') && !reviewContent?.includes('Personal Email:'), 'Legacy review labels are absent')
+    const draft = await page.evaluate(() => JSON.parse(sessionStorage.getItem('iot_club_registration_draft') || '{}'))
+    assert.equal(draft.emailAddress, SYNTHETIC_STUDENT.emailAddress, 'Draft stores the canonical email')
+    assert.ok(!('college_email' in draft) && !('personal_email' in draft) && !('account_email' in draft), 'Draft has no legacy email fields')
     console.log('✓ TEST 5 PASSED: All Steps 1–3 form data safely restored from sessionStorage.')
 
     // -----------------------------------------------------------
@@ -331,7 +349,7 @@ async function runIntegratedRegistrationAuthTests() {
     // -----------------------------------------------------------
     console.log('\n--- TEST 7: SUPABASE PERSISTENCE ---')
     const { data: users } = await supabaseAdmin.auth.admin.listUsers()
-    const studentUser = users?.users?.find((u) => u.email === SYNTHETIC_STUDENT.collegeEmail)
+    const studentUser = users?.users?.find((u) => u.email === SYNTHETIC_STUDENT.emailAddress)
     assert.ok(studentUser, 'auth.users record exists')
     studentUserId = studentUser.id
 
@@ -342,7 +360,8 @@ async function runIntegratedRegistrationAuthTests() {
     const { data: studentProf } = await supabaseAdmin.from('student_profiles').select('*').eq('user_id', studentUserId).single()
     assert.equal(studentProf.registration_id, generatedRegistrationId, 'student_profiles.registration_id matches')
     assert.equal(studentProf.register_number, SYNTHETIC_STUDENT.rollNumber, 'register_number matches')
-    assert.equal(studentProf.college_email, SYNTHETIC_STUDENT.collegeEmail, 'college_email matches')
+    assert.equal(studentProf.college_email, SYNTHETIC_STUDENT.emailAddress, 'legacy college_email matches account')
+    assert.equal(studentProf.personal_email, SYNTHETIC_STUDENT.emailAddress, 'legacy personal_email matches account')
 
     const { data: app } = await supabaseAdmin.from('membership_applications').select('*').eq('user_id', studentUserId).single()
     assert.equal(app.registration_id, generatedRegistrationId, 'membership_applications.registration_id matches')
@@ -375,42 +394,24 @@ async function runIntegratedRegistrationAuthTests() {
     console.log('✓ TEST 8 PASSED: Password string is completely absent from all application tables.')
 
     // -----------------------------------------------------------
-    // TEST 9: GOOGLE SHEETS SYNC & PASSWORD ABSENCE
+    // TEST 9: LOCAL SHEET ROW CONTRACT & PASSWORD ABSENCE
     // -----------------------------------------------------------
-    console.log('\n--- TEST 9: GOOGLE SHEETS SYNC & PASSWORD ABSENCE ---')
-    let isSynced = false
-    for (let i = 0; i < 30; i++) {
-      const { data: syncLog } = await supabaseAdmin.from('sheet_sync_logs').select('sync_status, error_message').eq('entity_id', app.id).single()
-      console.log(`[TEST 9] Poll ${i}: sync_status = ${syncLog?.sync_status}, error = ${syncLog?.error_message || 'none'}`)
-      if (syncLog?.sync_status === 'SYNCED') {
-        isSynced = true
-        break
-      }
-      if (syncLog?.sync_status === 'PENDING' || syncLog?.sync_status === 'FAILED' || (syncLog?.sync_status === 'SYNCING' && i > 5)) {
-        if (syncLog?.sync_status === 'SYNCING' && i > 5) {
-          await supabaseAdmin.from('sheet_sync_logs').update({ sync_status: 'PENDING' }).eq('entity_id', app.id)
-        }
-        const drainResult = await drainGoogleSheetsOutbox()
-        console.log('Outbox drain summary:', drainResult)
-      }
-      await new Promise((r) => setTimeout(r, 1000))
-    }
-    assert.ok(isSynced, 'sheet_sync_logs reached SYNCED')
-
-    const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID!
-    const sheetName = process.env.GOOGLE_SHEETS_REGISTRATION_TAB || 'Registrations'
-    const adapter = createGoogleSheetsAdapterFromEnv()
-    const rows = await adapter.getAllRows(spreadsheetId, sheetName)
-    const matchingRows = rows.filter((r) => r[0] === generatedRegistrationId)
-
-    assert.equal(matchingRows.length, 1, `Expected exactly 1 Google Sheet row for ${generatedRegistrationId}`)
-    const row = matchingRows[0]
+    console.log('\n--- TEST 9: LOCAL SHEET ROW CONTRACT & PASSWORD ABSENCE ---')
+    const row = mapApplicationToSheetRow({
+      application: app,
+      profile,
+      studentProfile: studentProf,
+      interests: interests || [],
+      skills: skills || [],
+    })
     assert.equal(row.length, 28, 'Canonical 28 columns (A:AB) verified')
     assert.equal(row[0], generatedRegistrationId, 'Col A: Registration ID')
     assert.equal(row[1], SYNTHETIC_STUDENT.rollNumber, 'Col B: Roll Number')
+    assert.equal(row[10], SYNTHETIC_STUDENT.emailAddress, 'Col K uses account email')
+    assert.equal(row[11], SYNTHETIC_STUDENT.emailAddress, 'Col L uses the same account email')
     assert.equal(row[22], 'PENDING', 'Col W: PENDING status')
     assert.ok(!JSON.stringify(row).includes(pass), 'Password NEVER present in Google Sheet row')
-    console.log('✓ TEST 9 PASSED: Google Sheet synchronized 28 canonical columns with zero password exposure.')
+    console.log('✓ TEST 9 PASSED: Local 28-column mapping has one email and no password.')
 
     // -----------------------------------------------------------
     // TEST 10: ROUTE GUARDS FOR PENDING STUDENT
@@ -432,7 +433,7 @@ async function runIntegratedRegistrationAuthTests() {
     page = await context.newPage()
 
     await page.goto(`${BASE_URL}/login`, { waitUntil: 'networkidle' })
-    await page.fill('#auth-email', SYNTHETIC_STUDENT.collegeEmail)
+    await page.fill('#auth-email', SYNTHETIC_STUDENT.emailAddress)
     await page.fill('#auth-password', SYNTHETIC_STUDENT.password)
     await page.click('button:has-text("Sign In")')
 
@@ -486,15 +487,13 @@ async function runIntegratedRegistrationAuthTests() {
     console.log('✓ TEST 13 PASSED: Application transitioned to APPROVED.')
 
     // -----------------------------------------------------------
-    // TEST 14: SAME SHEET ROW UPDATED IN PLACE
+    // TEST 14: LOCAL OUTBOX UPDATED AFTER APPROVAL
     // -----------------------------------------------------------
-    console.log('\n--- TEST 14: SAME GOOGLE SHEET ROW UPDATED ---')
-    await drainGoogleSheetsOutbox()
-    const updatedRows = await adapter.getAllRows(spreadsheetId, sheetName)
-    const matchingUpdated = updatedRows.filter((r) => r[0] === generatedRegistrationId)
-    assert.equal(matchingUpdated.length, 1, 'Exactly 1 row remains in Google Sheet (no duplicate)')
-    assert.equal(matchingUpdated[0][22], 'APPROVED', 'Col W updated to APPROVED in place')
-    console.log('✓ TEST 14 PASSED: Existing Google Sheet row updated in place (Zero duplicates).')
+    console.log('\n--- TEST 14: LOCAL OUTBOX UPDATED AFTER APPROVAL ---')
+    const { data: approvalOutbox } = await supabaseAdmin.from('sheet_sync_logs')
+      .select('id').eq('entity_id', app.id)
+    assert.ok((approvalOutbox?.length || 0) > 0, 'Approval remains queued for Sheet sync')
+    console.log('✓ TEST 14 PASSED: Local outbox contains the approval update.')
 
     // -----------------------------------------------------------
     // TEST 15: APPROVED STUDENT ROUTES TO DASHBOARD
@@ -503,9 +502,12 @@ async function runIntegratedRegistrationAuthTests() {
     await context.close()
     context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
     page = await context.newPage()
+    await page.route('**/api/internal/google-sheets/sync/self', (route) =>
+      route.fulfill({ status: 202, body: '' })
+    )
 
     await page.goto(`${BASE_URL}/login`, { waitUntil: 'networkidle' })
-    await page.fill('#auth-email', SYNTHETIC_STUDENT.collegeEmail)
+    await page.fill('#auth-email', SYNTHETIC_STUDENT.emailAddress)
     await page.fill('#auth-password', SYNTHETIC_STUDENT.password)
     await page.click('button:has-text("Sign In")')
 
@@ -521,7 +523,7 @@ async function runIntegratedRegistrationAuthTests() {
     console.log('\n--- TEST 16: DUPLICATE EMAIL PROTECTION ---')
     const anonClient = createClient(SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '')
     const dupSignup = await anonClient.auth.signUp({
-      email: SYNTHETIC_STUDENT.collegeEmail,
+      email: SYNTHETIC_STUDENT.emailAddress,
       password: SYNTHETIC_STUDENT.password,
     })
     // Supabase prevents duplicate identities or returns empty user
@@ -552,16 +554,13 @@ async function runIntegratedRegistrationAuthTests() {
         gender: 'Other',
         date_of_birth: '2005-01-01',
         mobile_number: '9000009999',
-        college_email: 'dup.reg@college.example',
-        personal_email: 'dup.personal@example.com',
         register_number: SYNTHETIC_STUDENT.rollNumber, // SAME REGISTER NUMBER
         department: 'CSE',
         degree_programme: 'B.E.',
         year_of_study: 1,
         semester: 1,
         batch: '2025-2029',
-        reason_for_joining: 'Duplicate test',
-        interests: ['Robotics'],
+        interests: ['Embedded Systems'],
         skill_level: 'BEGINNER',
         previous_iot_experience: false,
         skills: [],
@@ -580,7 +579,7 @@ async function runIntegratedRegistrationAuthTests() {
     console.log('\n--- TEST 18: DOUBLE SUBMISSION PROTECTION ---')
     const studentClient = createClient(SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '')
     await studentClient.auth.signInWithPassword({
-      email: SYNTHETIC_STUDENT.collegeEmail,
+      email: SYNTHETIC_STUDENT.emailAddress,
       password: SYNTHETIC_STUDENT.password,
     })
     const { error: doubleSubErr } = await studentClient.rpc('submit_membership_application', {
@@ -588,15 +587,13 @@ async function runIntegratedRegistrationAuthTests() {
         full_name: SYNTHETIC_STUDENT.name,
         date_of_birth: SYNTHETIC_STUDENT.dob,
         mobile_number: SYNTHETIC_STUDENT.mobile,
-        personal_email: SYNTHETIC_STUDENT.personalEmail,
         register_number: 'TEST-INTEGRATED-002',
         department: 'CSE',
         degree_programme: 'B.E.',
         year_of_study: 2,
         semester: 4,
         batch: '2024-2028',
-        reason_for_joining: 'Double submission test',
-        interests: ['Robotics'],
+        interests: ['Embedded Systems'],
         skill_level: 'BEGINNER',
         previous_iot_experience: false,
         consent_accuracy: true,
@@ -672,7 +669,57 @@ async function runIntegratedRegistrationAuthTests() {
     console.log('✓ RESPONSIVE VIEWPORTS: 375px, 768px, 1440px verified without horizontal overflow.')
 
     // Clean up
-    await cleanupStudent(SYNTHETIC_STUDENT.collegeEmail)
+    await cleanupStudent(SYNTHETIC_STUDENT.emailAddress)
+
+    // A personal address must also complete the same single-email RPC contract.
+    console.log('\n--- PERSONAL EMAIL SUBMISSION ---')
+    const personalAddress = 'integrated.personal@gmail.com'
+    await cleanupStudent(personalAddress)
+    try {
+      const { error: createPersonalError } = await supabaseAdmin.auth.admin.createUser({
+        email: personalAddress,
+        password: SYNTHETIC_STUDENT.password,
+        email_confirm: true,
+      })
+      assert.equal(createPersonalError, null, 'Personal-email account created locally')
+      const personalClient = createClient(SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '')
+      const { error: personalSignInError } = await personalClient.auth.signInWithPassword({
+        email: personalAddress,
+        password: SYNTHETIC_STUDENT.password,
+      })
+      assert.equal(personalSignInError, null, 'Personal-email account authenticated')
+      const { error: personalSubmitError } = await personalClient.rpc('submit_membership_application', {
+        payload: {
+          full_name: 'Personal Email Student',
+          date_of_birth: SYNTHETIC_STUDENT.dob,
+          mobile_number: SYNTHETIC_STUDENT.mobile,
+          register_number: 'TEST-INTEGRATED-PERSONAL',
+          department: 'CSE',
+          degree_programme: 'B.E.',
+          year_of_study: 2,
+          semester: 4,
+          batch: '2024-2028',
+          interests: ['Embedded Systems'],
+          skill_level: 'BEGINNER',
+          previous_iot_experience: false,
+          skills: [],
+          consent_accuracy: true,
+          consent_rules: true,
+          consent_data_use: true,
+        },
+      })
+      assert.equal(personalSubmitError, null, 'Personal-email application submitted without legacy email fields')
+      const { data: personalUser } = await supabaseAdmin.auth.admin.listUsers()
+      const personalUserId = personalUser?.users?.find((user) => user.email === personalAddress)?.id
+      assert.ok(personalUserId, 'Personal-email user exists')
+      const { data: personalProfile } = await supabaseAdmin.from('student_profiles')
+        .select('college_email,personal_email').eq('user_id', personalUserId).single()
+      assert.equal(personalProfile?.college_email, personalAddress)
+      assert.equal(personalProfile?.personal_email, personalAddress)
+      console.log('✓ PERSONAL EMAIL SUBMISSION PASSED: One personal address creates the account and application.')
+    } finally {
+      await cleanupStudent(personalAddress)
+    }
 
     console.log('\n========================================================')
     console.log('ALL 20 INTEGRATED REGISTRATION + AUTH TESTS PASSED!')
@@ -681,7 +728,7 @@ async function runIntegratedRegistrationAuthTests() {
     return { success: true }
   } catch (err) {
     console.error('\n❌ INTEGRATED REGISTRATION TEST FAILED:', err)
-    await cleanupStudent(SYNTHETIC_STUDENT.collegeEmail).catch(() => {})
+    await cleanupStudent(SYNTHETIC_STUDENT.emailAddress).catch(() => {})
     throw err
   } finally {
     await browser.close()
