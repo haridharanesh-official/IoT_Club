@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { execFileSync } from 'node:child_process'
 import { readFileSync, existsSync } from 'node:fs'
 import { createClient } from '@supabase/supabase-js'
 import {
@@ -32,6 +33,20 @@ async function runStudentPortalTests() {
   console.log('========================================================')
   console.log('PHASE 10: REAL STUDENT PORTAL CORE TEST SUITE')
   console.log('========================================================\n')
+
+  const catalogState = execFileSync(
+    'psql',
+    ['postgresql://postgres:postgres@127.0.0.1:54322/postgres', '-At', '-c', `
+      select coalesce(array_to_string(reloptions, ','), '')
+      from pg_class
+      where oid = 'public.public_member_profiles'::regclass;
+    `],
+    { encoding: 'utf8' }
+  ).trim()
+  assert.ok(
+    catalogState.split(',').includes('security_invoker=true'),
+    'public_member_profiles must use security_invoker=true in the live database catalog'
+  )
 
   // Helper to clean up synthetic test users
   async function cleanupUser(email: string) {
@@ -347,18 +362,17 @@ async function runStudentPortalTests() {
   const pubByUsername = await getPublicMemberProfile('approved-member', supabaseAdmin)
   assert.ok(pubByUsername, 'Must find member by username')
   assert.equal(pubByUsername?.fullName, 'Approved Test Student')
-  assert.equal(pubByUsername?.registerNumber, 'TEST-IOT-00008')
+  assert.equal(pubByUsername?.registerNumber, null)
+  assert.equal(pubByUsername?.registrationId, null)
   assert.equal(pubByUsername?.department, 'Cyber Security')
 
-  // 7B. Look up by register_number
+  // 7B. Private register numbers must not resolve publicly
   const pubByRoll = await getPublicMemberProfile('TEST-IOT-00008', supabaseAdmin)
-  assert.ok(pubByRoll, 'Must find member by register_number')
-  assert.equal(pubByRoll?.userId, APPROVED_USER_ID)
+  assert.equal(pubByRoll, null, 'Must not find member by private register_number')
 
-  // 7C. Look up by registration_id
+  // 7C. Private registration IDs must not resolve publicly
   const pubByRegId = await getPublicMemberProfile('IOT-2026-00008', supabaseAdmin)
-  assert.ok(pubByRegId, 'Must find member by registration_id')
-  assert.equal(pubByRegId?.userId, APPROVED_USER_ID)
+  assert.equal(pubByRegId, null, 'Must not find member by private registration_id')
 
   // 7D. Verify privacy: No private PII is leaked in public profile
   const pubAny = pubByUsername as any
@@ -366,6 +380,7 @@ async function runStudentPortalTests() {
   assert.equal(pubAny.personalEmail, undefined, 'personalEmail must NOT be present in public profile')
   assert.equal(pubAny.collegeEmail, undefined, 'collegeEmail must NOT be present in public profile')
   assert.equal(pubAny.dateOfBirth, undefined, 'dateOfBirth must NOT be present in public profile')
+  assert.equal(pubAny.userId, undefined, 'internal user UUID must NOT be present in public profile')
 
   // 7E. Non-existent username
   const pubNonExistent = await getPublicMemberProfile('non-existent-user-xyz-99', supabaseAdmin)
@@ -376,7 +391,7 @@ async function runStudentPortalTests() {
   const pubPending = await getPublicMemberProfile(PENDING_REG_ID, supabaseAdmin)
   assert.equal(pubPending, null, 'PENDING student must NOT be exposed on public member view')
 
-  console.log('✓ TEST 7 PASSED: Public profile resolves flexibly by username/roll/regId with zero PII leakage.\n')
+  console.log('✓ TEST 7 PASSED: Public profile resolves by username with private identifiers redacted.\n')
 
   // -----------------------------------------------------------
   // TEST 8: Graceful Empty / Zero-State Handling

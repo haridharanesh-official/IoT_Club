@@ -175,8 +175,8 @@ async function runQuickEnrolmentRemovalTest() {
     await page.selectOption('#field-gender', SYNTHETIC_STUDENT.gender)
     await page.fill('#field-dob', SYNTHETIC_STUDENT.dob)
     await page.fill('#field-mobile', SYNTHETIC_STUDENT.mobile)
-    await page.fill('#field-college-email', SYNTHETIC_STUDENT.collegeEmail)
-    await page.fill('#field-personal-email', SYNTHETIC_STUDENT.personalEmail)
+    await page.fill('#field-email-address', SYNTHETIC_STUDENT.collegeEmail)
+    assert.equal(await page.locator('input[type="email"]').count(), 1, 'Step 1 has one email input')
     await page.click('button:has-text("Continue")')
     await page.waitForTimeout(400)
 
@@ -210,7 +210,7 @@ async function runQuickEnrolmentRemovalTest() {
 
     // Step 4: Account Creation
     const accountEmailVal = await page.inputValue('#account-email')
-    assert.equal(accountEmailVal, SYNTHETIC_STUDENT.collegeEmail, 'Login email pre-filled with college email')
+    assert.equal(accountEmailVal, SYNTHETIC_STUDENT.collegeEmail, 'Login email matches Step 1')
 
     await page.fill('#account-password', SYNTHETIC_STUDENT.password)
     await page.fill('#account-confirm-password', SYNTHETIC_STUDENT.password)
@@ -344,7 +344,7 @@ async function runQuickEnrolmentRemovalTest() {
     assert.equal(row[8], SYNTHETIC_STUDENT.batch, 'Col I matches Batch')
     assert.equal(row[9], SYNTHETIC_STUDENT.mobile, 'Col J matches Mobile')
     assert.equal(row[10], SYNTHETIC_STUDENT.collegeEmail, 'Col K matches College Email')
-    assert.equal(row[11], SYNTHETIC_STUDENT.personalEmail, 'Col L matches Personal Email')
+    assert.equal(row[11], SYNTHETIC_STUDENT.collegeEmail, 'Col L uses the same supplied email')
     assert.equal(row[12], SYNTHETIC_STUDENT.gender, 'Col M matches Gender')
     assert.equal(row[14], SYNTHETIC_STUDENT.skillLevel, 'Col O matches Skill Level')
     assert.equal(row[15], 'Yes', 'Col P matches Previous Experience')

@@ -114,7 +114,7 @@ export function mapApplicationToSheetRow(
     studentProfile.batch,
     studentProfile.mobile_number,
     studentProfile.college_email || profile.email,
-    studentProfile.personal_email,
+    studentProfile.personal_email || profile.email,
     studentProfile.gender || '',
     sortedInterests,
     application.skill_level,

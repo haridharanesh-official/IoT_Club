@@ -20,17 +20,19 @@ import { signIn, signInWithGoogle, signUp, validateEmail, validatePassword } fro
 const INTEREST_OPTIONS = [
   'Internet of Things',
   'Embedded Systems',
-  'Robotics',
+  'Microcontrollers',
   'Sensors & Actuators',
-  'Wireless & LoRa',
-  'Cloud & AIoT',
-  'Cybersecurity',
-  'Artificial Intelligence',
-  'Edge AI',
-  'Automation',
-  'Electronics',
-  'Cloud & Networking',
-  'Computer Vision',
+  'IoT Communication Protocols',
+  'Wireless IoT',
+  'LoRa / LoRaWAN',
+  'MQTT',
+  'Edge IoT',
+  'Industrial IoT',
+  'IoT Cloud & Dashboards',
+  'IoT Security',
+  'Smart Home & Building Automation',
+  'Smart Agriculture IoT',
+  'Healthcare IoT',
 ] as const
 
 const SKILLS = {
@@ -51,8 +53,7 @@ type Form = {
   gender: string
   date_of_birth: string
   mobile_number: string
-  college_email: string
-  personal_email: string
+  emailAddress: string
   // Step 2: Academic
   register_number: string
   department: string
@@ -62,15 +63,12 @@ type Form = {
   section: string
   batch: string
   // Step 3: IoT & Skills
-  reason_for_joining: string
   skill_level: Skill['level'] | ''
   previous_iot_experience: boolean | null
   experience_description: string
   github_url: string
   linkedin_url: string
   portfolio_url: string
-  // Step 4: Account Email
-  account_email: string
   // Step 5: Consent
   consent_accuracy: boolean
   consent_rules: boolean
@@ -82,8 +80,7 @@ const initialForm: Form = {
   gender: '',
   date_of_birth: '',
   mobile_number: '',
-  college_email: '',
-  personal_email: '',
+  emailAddress: '',
   register_number: '',
   department: '',
   degree_programme: '',
@@ -91,14 +88,12 @@ const initialForm: Form = {
   semester: '',
   section: '',
   batch: '',
-  reason_for_joining: '',
   skill_level: '',
   previous_iot_experience: null,
   experience_description: '',
   github_url: '',
   linkedin_url: '',
   portfolio_url: '',
-  account_email: '',
   consent_accuracy: false,
   consent_rules: false,
   consent_data_use: false,
@@ -118,8 +113,7 @@ export default function RegistrationForm({
   const [step, setStep] = useState(1)
   const [form, setForm] = useState<Form>(() => ({
     ...initialForm,
-    college_email: initialUser?.email ?? '',
-    account_email: initialUser?.email ?? '',
+    emailAddress: initialUser?.email ?? '',
   }))
   const [selectedInterests, setSelectedInterests] = useState<string[]>([])
   const [selectedSkills, setSelectedSkills] = useState<Skill[]>([])
@@ -142,6 +136,7 @@ export default function RegistrationForm({
 
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [draftHydrated, setDraftHydrated] = useState(false)
 
   // 1. Hydrate non-sensitive form state from sessionStorage on mount
   useEffect(() => {
@@ -150,12 +145,15 @@ export default function RegistrationForm({
       if (saved) {
         const parsed = JSON.parse(saved)
         if (parsed && typeof parsed === 'object') {
+          const restored = Object.fromEntries(
+            Object.keys(initialForm)
+              .filter((key) => key !== 'emailAddress' && key in parsed)
+              .map((key) => [key, parsed[key]])
+          )
           setForm((prev) => ({
             ...prev,
-            ...parsed,
-            // If an authenticated user was supplied by server, keep their email
-            college_email: initialUser?.email || parsed.college_email || prev.college_email,
-            account_email: initialUser?.email || parsed.account_email || prev.account_email,
+            ...restored,
+            emailAddress: initialUser?.email || parsed.emailAddress || prev.emailAddress,
           }))
           if (Array.isArray(parsed.selectedInterests)) {
             setSelectedInterests(parsed.selectedInterests)
@@ -169,6 +167,7 @@ export default function RegistrationForm({
         }
       }
     } catch {}
+    setDraftHydrated(true)
 
     // Check client session
     const supabase = createClient()
@@ -177,8 +176,7 @@ export default function RegistrationForm({
         setAuthUser({ id: user.id, email: user.email ?? '' })
         setForm((prev) => ({
           ...prev,
-          college_email: prev.college_email || user.email || '',
-          account_email: prev.account_email || user.email || '',
+          emailAddress: user.email || prev.emailAddress,
         }))
       }
     })
@@ -186,6 +184,7 @@ export default function RegistrationForm({
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         setAuthUser({ id: session.user.id, email: session.user.email ?? '' })
+        setForm((prev) => ({ ...prev, emailAddress: session.user.email || prev.emailAddress }))
         setWaitingVerification(false)
       }
     })
@@ -198,6 +197,7 @@ export default function RegistrationForm({
 
   // 2. Persist non-sensitive draft to sessionStorage whenever form values change
   useEffect(() => {
+    if (!draftHydrated) return
     try {
       const draft = {
         ...form,
@@ -207,7 +207,7 @@ export default function RegistrationForm({
       }
       sessionStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft))
     } catch {}
-  }, [form, selectedInterests, selectedSkills, step])
+  }, [draftHydrated, form, selectedInterests, selectedSkills, step])
 
   // 3. Polling when waiting for email verification in Step 4
   useEffect(() => {
@@ -248,11 +248,8 @@ export default function RegistrationForm({
       if (!form.mobile_number.trim() || !/^[0-9+() -]{7,20}$/.test(form.mobile_number.trim())) {
         return 'Please enter a valid mobile number.'
       }
-      if (!form.college_email.trim() || !validateEmail(form.college_email)) {
-        return 'Please enter a valid college email address.'
-      }
-      if (!form.personal_email.trim() || !validateEmail(form.personal_email)) {
-        return 'Please enter a valid personal email address.'
+      if (!form.emailAddress.trim() || !validateEmail(form.emailAddress)) {
+        return 'Please enter a valid email address.'
       }
     }
 
@@ -262,15 +259,13 @@ export default function RegistrationForm({
       if (!form.department.trim()) return 'Please enter your department.'
       if (!form.degree_programme.trim()) return 'Please enter your degree / programme.'
       const year = Number(form.year_of_study)
-      if (isNaN(year) || year < 1 || year > 6) return 'Year of study must be between 1 and 6.'
+      if (isNaN(year) || year < 1 || year > 4) return 'Year of study must be between 1 and 4.'
       const sem = Number(form.semester)
       if (isNaN(sem) || sem < 1 || sem > 12) return 'Semester must be between 1 and 12.'
       if (!form.batch.trim()) return 'Please enter your graduation batch (e.g. 2024-2028).'
     }
 
     if (s === 3) {
-      if (!form.reason_for_joining.trim()) return 'Please describe your reason for joining IoT Club.'
-      if (form.reason_for_joining.trim().length > 2000) return 'Reason for joining must not exceed 2000 characters.'
       if (selectedInterests.length === 0) return 'Please select at least one area of interest.'
       if (selectedInterests.length > 10) return 'You can select at most 10 areas of interest.'
       if (!form.skill_level) return 'Please select your overall IoT skill level.'
@@ -309,11 +304,6 @@ export default function RegistrationForm({
     setError(issue)
     if (issue) return
 
-    // Pre-populate account email from college email when moving from Step 1
-    if (step === 1 && !form.account_email) {
-      update('account_email', form.college_email)
-    }
-
     setStep(Math.min(step + 1, 5))
   }
 
@@ -327,14 +317,14 @@ export default function RegistrationForm({
     setError('')
     setResendNotice('')
 
-    const targetEmail = form.account_email.trim() || form.college_email.trim()
+    const targetEmail = form.emailAddress.trim()
     if (!validateEmail(targetEmail)) {
       setError('Please enter a valid login email address.')
       return
     }
 
     if (!validatePassword(password)) {
-      setError('Use at least 8 characters with letters and numbers.')
+      setError('Use at least 8 characters including lowercase, uppercase, a number, and a symbol.')
       return
     }
 
@@ -388,7 +378,7 @@ export default function RegistrationForm({
 
     setIsSigningInExisting(true)
     try {
-      const targetEmail = form.account_email.trim() || form.college_email.trim()
+      const targetEmail = form.emailAddress.trim()
       const result = await signIn(targetEmail, existingPassword)
       setExistingPassword('')
 
@@ -456,7 +446,7 @@ export default function RegistrationForm({
     setError('')
     try {
       const supabase = createClient()
-      const targetEmail = form.account_email.trim() || form.college_email.trim()
+      const targetEmail = form.emailAddress.trim()
       const { error: resendErr } = await supabase.auth.resend({
         type: 'signup',
         email: targetEmail,
@@ -497,8 +487,6 @@ export default function RegistrationForm({
         gender: form.gender.trim() || null,
         date_of_birth: form.date_of_birth,
         mobile_number: form.mobile_number.trim(),
-        college_email: authUser.email || form.college_email.trim(),
-        personal_email: form.personal_email.trim().toLowerCase(),
         register_number: form.register_number.trim(),
         department: form.department.trim(),
         degree_programme: form.degree_programme.trim(),
@@ -506,7 +494,6 @@ export default function RegistrationForm({
         semester: Number(form.semester),
         section: form.section.trim() || null,
         batch: form.batch.trim(),
-        reason_for_joining: form.reason_for_joining.trim(),
         interests: selectedInterests,
         skill_level: form.skill_level,
         previous_iot_experience: form.previous_iot_experience,
@@ -639,7 +626,7 @@ export default function RegistrationForm({
                     required
                     value={form.full_name}
                     onChange={(e) => update('full_name', e.target.value)}
-                    placeholder="e.g. Priyadharshini R"
+                    placeholder="e.g. Adya G"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-emerald-500 focus:bg-white font-medium"
                   />
                 </div>
@@ -693,40 +680,19 @@ export default function RegistrationForm({
                 </div>
 
                 <div>
-                  <label htmlFor="field-college-email" className="block text-xs font-semibold text-slate-700 mb-1">
-                    College Email *
+                  <label htmlFor="field-email-address" className="block text-xs font-semibold text-slate-700 mb-1">
+                    Email Address *
                   </label>
                   <input
-                    id="field-college-email"
+                    id="field-email-address"
                     type="email"
                     required
-                    value={form.college_email}
-                    onChange={(e) => {
-                      update('college_email', e.target.value)
-                      if (!form.account_email || form.account_email === form.college_email) {
-                        update('account_email', e.target.value)
-                      }
-                    }}
-                    placeholder="e.g. student@college.example"
+                    value={form.emailAddress}
+                    onChange={(e) => update('emailAddress', e.target.value)}
+                    placeholder="e.g. student@example.com"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-emerald-500 focus:bg-white font-medium"
                   />
-                  <p className="text-[10px] text-slate-500 mt-1">This will be your primary portal login ID.</p>
-                </div>
-
-                <div>
-                  <label htmlFor="field-personal-email" className="block text-xs font-semibold text-slate-700 mb-1">
-                    Personal Email *
-                  </label>
-                  <input
-                    id="field-personal-email"
-                    type="email"
-                    required
-                    value={form.personal_email}
-                    onChange={(e) => update('personal_email', e.target.value)}
-                    placeholder="e.g. student.personal@example.com"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-emerald-500 focus:bg-white font-medium"
-                  />
-                  <p className="text-[10px] text-slate-500 mt-1">Used for emergency alerts and recovery.</p>
+                  <p className="text-[10px] text-slate-500 mt-1">Use your personal or college email address. This will also be your login email.</p>
                 </div>
               </div>
             </div>
@@ -805,13 +771,13 @@ export default function RegistrationForm({
 
                 <div>
                   <label htmlFor="field-year" className="block text-xs font-semibold text-slate-700 mb-1">
-                    Year of Study (1–6) *
+                    Year of Study (1–4) *
                   </label>
                   <input
                     id="field-year"
                     type="number"
                     min={1}
-                    max={6}
+                    max={4}
                     required
                     value={form.year_of_study}
                     onChange={(e) => update('year_of_study', e.target.value)}
@@ -862,25 +828,12 @@ export default function RegistrationForm({
                 <p className="text-xs text-slate-500">Help us understand your technical background and club interests.</p>
               </div>
 
-              <div>
-                <label htmlFor="field-reason" className="block text-xs font-semibold text-slate-700 mb-1">
-                  Reason for Joining IoT Club *
-                </label>
-                <textarea
-                  id="field-reason"
-                  required
-                  value={form.reason_for_joining}
-                  onChange={(e) => update('reason_for_joining', e.target.value)}
-                  placeholder="Share what drives you to join the IoT Club, hardware projects you're interested in, or skills you want to learn..."
-                  className="w-full min-h-24 bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:border-emerald-500 focus:bg-white font-medium"
-                />
-              </div>
-
               {/* Areas of Interest */}
               <fieldset>
                 <legend className="text-xs font-semibold text-slate-700 mb-2">
                   Areas of Interest * <span className="text-slate-400 font-normal">(Select 1 to 10)</span>
                 </legend>
+                <p className="text-xs text-slate-500 mb-2">Select the IoT areas you are interested in.</p>
                 <div className="flex flex-wrap gap-2">
                   {INTEREST_OPTIONS.map((interest) => {
                     const checked = selectedInterests.includes(interest)
@@ -896,6 +849,7 @@ export default function RegistrationForm({
                         <input
                           type="checkbox"
                           checked={checked}
+                          disabled={!checked && selectedInterests.length >= 10}
                           onChange={() => {
                             setSelectedInterests((prev) =>
                               checked ? prev.filter((i) => i !== interest) : [...prev, interest]
@@ -1102,7 +1056,7 @@ export default function RegistrationForm({
                     <span>Verify your email to continue</span>
                   </div>
                   <p className="text-xs text-amber-800 leading-relaxed">
-                    We sent a confirmation link to <strong>{form.account_email || form.college_email}</strong>.
+                    We sent a confirmation link to <strong>{form.emailAddress}</strong>.
                     Please check your inbox and click the verification link.
                   </p>
                   <p className="text-[11px] text-slate-500">
@@ -1143,7 +1097,7 @@ export default function RegistrationForm({
                     <span>Account Already Exists — Sign In to Continue</span>
                   </div>
                   <p className="text-xs text-slate-600">
-                    An account for <strong>{form.account_email || form.college_email}</strong> is already registered. Enter your password to link your application:
+                    An account for <strong>{form.emailAddress}</strong> is already registered. Enter your password to link your application:
                   </p>
 
                   <div className="space-y-3">
@@ -1226,13 +1180,13 @@ export default function RegistrationForm({
                         type="email"
                         autoComplete="email"
                         required
-                        value={form.account_email || form.college_email}
-                        onChange={(e) => update('account_email', e.target.value)}
-                        placeholder="your.email@college.example"
+                        value={form.emailAddress}
+                        readOnly
+                        placeholder="e.g. student@example.com"
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-emerald-500 focus:bg-white font-medium"
                       />
                     </div>
-                    <p className="text-[10px] text-slate-500 mt-1">Pre-filled with your college email from Step 1.</p>
+                    <p className="text-[10px] text-slate-500 mt-1">Uses the email address from Step 1.</p>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1261,7 +1215,7 @@ export default function RegistrationForm({
                           {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>
-                      <p className="text-[10px] text-slate-500 mt-1">Minimum 8 characters with letters and numbers.</p>
+                      <p className="text-[10px] text-slate-500 mt-1">Minimum 8 characters with lowercase, uppercase, a number, and a symbol.</p>
                     </div>
 
                     <div>
@@ -1330,8 +1284,7 @@ export default function RegistrationForm({
                     <p><strong className="text-slate-800">Gender:</strong> {form.gender || '—'}</p>
                     <p><strong className="text-slate-800">Date of Birth:</strong> {form.date_of_birth || '—'}</p>
                     <p><strong className="text-slate-800">Mobile:</strong> {form.mobile_number || '—'}</p>
-                    <p><strong className="text-slate-800">College Email:</strong> {form.college_email || '—'}</p>
-                    <p><strong className="text-slate-800">Personal Email:</strong> {form.personal_email || '—'}</p>
+                    <p><strong className="text-slate-800">Email Address:</strong> {form.emailAddress || '—'}</p>
                   </div>
                 </div>
 
@@ -1349,7 +1302,6 @@ export default function RegistrationForm({
                 <div className="border-t border-slate-200/70 pt-3">
                   <h3 className="font-bold text-slate-900 mb-1.5">IoT & Skills</h3>
                   <div className="space-y-1 text-slate-600">
-                    <p><strong className="text-slate-800">Reason for Joining:</strong> {form.reason_for_joining || '—'}</p>
                     <p><strong className="text-slate-800">Interests:</strong> {selectedInterests.join(', ') || '—'}</p>
                     <p><strong className="text-slate-800">Skill Level:</strong> {form.skill_level || '—'}</p>
                     <p><strong className="text-slate-800">Previous IoT Experience:</strong> {form.previous_iot_experience ? `Yes — ${form.experience_description}` : 'No'}</p>
@@ -1381,10 +1333,6 @@ export default function RegistrationForm({
 
                 <div className="border-t border-slate-200/70 pt-3">
                   <h3 className="font-bold text-slate-900 mb-1">Account Credentials</h3>
-                  <p className="text-slate-600">
-                    <strong className="text-slate-800">Account Login Email:</strong>{' '}
-                    {authUser?.email || form.account_email || form.college_email}
-                  </p>
                   <p className="text-[10px] text-slate-400 mt-0.5">Password is protected by Supabase Auth and never shown in reviews.</p>
                 </div>
               </div>

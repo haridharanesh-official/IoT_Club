@@ -117,8 +117,8 @@ insert into public.membership_applications (
 insert into public.student_interests (user_id, interest)
 values
   ('c4a6963f-48e4-4f99-8ceb-1d15030a1974', 'Internet of Things'),
-  ('c4a6963f-48e4-4f99-8ceb-1d15030a1974', 'Robotics'),
-  ('c4a6963f-48e4-4f99-8ceb-1d15030a1974', 'Cybersecurity')
+  ('c4a6963f-48e4-4f99-8ceb-1d15030a1974', 'Embedded Systems'),
+  ('c4a6963f-48e4-4f99-8ceb-1d15030a1974', 'IoT Security')
 on conflict (user_id, interest) do nothing;
 
 insert into public.student_skills (user_id, category, skill, level)
@@ -220,7 +220,7 @@ insert into public.student_interests (user_id, interest)
 values
   ('e1111111-1111-4111-8111-111111111111', 'Internet of Things'),
   ('e1111111-1111-4111-8111-111111111111', 'Embedded Systems'),
-  ('e1111111-1111-4111-8111-111111111111', 'Electronics')
+  ('e1111111-1111-4111-8111-111111111111', 'Microcontrollers')
 on conflict (user_id, interest) do nothing;
 
 insert into public.student_skills (user_id, category, skill, level)

@@ -1,5 +1,5 @@
 import { createClient } from '../../utils/supabase/server'
-import type { SupabaseClient } from '@supabase/supabase-js'
+import { createClient as createSupabaseClient, type SupabaseClient } from '@supabase/supabase-js'
 
 export interface StudentProfile {
   userId: string
@@ -33,7 +33,7 @@ export interface StudentSkill {
 export interface StudentApplicationSummary {
   id: string
   registrationId: string
-  reasonForJoining: string
+  reasonForJoining: string | null
   skillLevel: string
   previousIotExperience: boolean
   experienceDescription: string | null
@@ -105,7 +105,6 @@ export interface StudentDashboardData {
 }
 
 export interface PublicMemberProfile {
-  userId: string
   fullName: string
   username: string | null
   registrationId: string | null
@@ -413,25 +412,42 @@ export async function getPublicMemberProfile(
   identifier: string,
   customClient?: SupabaseClient
 ): Promise<PublicMemberProfile | null> {
-  const supabase = customClient || (await createClient())
+  const supabase = customClient || createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false, autoRefreshToken: false } }
+  )
   const cleanId = identifier.trim()
 
-  // Look up in public_member_profiles view
+  // Public routes resolve usernames only. Legacy registration identifiers are
+  // deliberately not searchable or returned by the public projection.
   const { data: member, error } = await supabase
     .from('public_member_profiles')
     .select('*')
-    .or(`username.eq.${cleanId.toLowerCase()},register_number.ilike.${cleanId},registration_id.ilike.${cleanId}`)
+    .eq('username', cleanId.toLowerCase())
     .maybeSingle()
 
   if (error || !member) {
     return null
   }
 
+  // Resolve the internal key only inside trusted server-side code. It is never
+  // included in the returned public profile.
+  const { data: internalProfile, error: internalProfileError } = await supabase
+    .from('student_profiles')
+    .select('user_id')
+    .eq('username', member.username)
+    .maybeSingle()
+
+  if (internalProfileError || !internalProfile) return null
+
+  const memberUserId = internalProfile.user_id
+
   // Fetch public skills
   const { data: skillsData } = await supabase
     .from('student_skills')
     .select('category, skill, level')
-    .eq('user_id', member.user_id)
+    .eq('user_id', memberUserId)
 
   const skills: StudentSkill[] = (skillsData || []).map((s) => ({
     category: s.category as StudentSkill['category'],
@@ -443,7 +459,7 @@ export async function getPublicMemberProfile(
   const { data: interestsData } = await supabase
     .from('student_interests')
     .select('interest')
-    .eq('user_id', member.user_id)
+    .eq('user_id', memberUserId)
 
   const interests = (interestsData || []).map((i) => i.interest)
 
@@ -451,10 +467,9 @@ export async function getPublicMemberProfile(
   const { data: ownedProjects } = await supabase
     .from('projects')
     .select('id, title, description, status')
-    .eq('owner_id', member.user_id)
+    .eq('owner_id', memberUserId)
 
   return {
-    userId: member.user_id,
     fullName: member.full_name || 'Club Member',
     username: member.username,
     registrationId: member.registration_id,

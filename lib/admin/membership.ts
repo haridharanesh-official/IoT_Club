@@ -20,7 +20,7 @@ export interface HydratedAdminApplication {
   skillLevel: string
   previousIotExperience: boolean
   experienceDescription: string | null
-  reasonForJoining: string
+  reasonForJoining: string | null
 
   // Student Profile
   userId: string

@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "test:unit": "node --experimental-strip-types --test tests/registration-email-contract.test.mjs",
+    "test:e2e": "npx jiti tests/integrated-registration-auth.ts",
     "sheets:sync": "npx jiti scripts/sync-sheets.ts"
   },
   "dependencies": {
