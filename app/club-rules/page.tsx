@@ -4,8 +4,10 @@ export const metadata = { title: 'Participation guidelines — IoT Club' }
 
 export default function ClubRulesPage() {
   return (
-    <main className="max-w-3xl mx-auto px-4 py-12 space-y-6 text-slate-700">
-      <h1 className="text-3xl font-bold text-slate-900">Club participation guidelines</h1>
+    <main className="bg-circuit-grid min-h-[70vh] px-4 py-14 text-slate-700">
+      <div className="glass-card mx-auto max-w-3xl space-y-6 rounded-3xl p-7 sm:p-10">
+      <p className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold uppercase tracking-wider text-emerald-700">Member expectations</p>
+      <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">Club participation guidelines</h1>
       <p>These are the participation expectations shown with the membership application. They do not replace institute rules or imply that a separate formal club constitution has been approved.</p>
       <ul className="list-disc pl-6 space-y-2">
         <li>Provide accurate application and account information.</li>
@@ -16,6 +18,7 @@ export default function ClubRulesPage() {
       </ul>
       <p>Event-specific and laboratory operating rules may be provided separately by authorized staff.</p>
       <Link href="/register" className="inline-block text-emerald-700 font-semibold underline">Return to registration</Link>
+      </div>
     </main>
   )
 }

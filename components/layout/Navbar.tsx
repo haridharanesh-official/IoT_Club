@@ -66,7 +66,12 @@ export const Navbar: React.FC = () => {
     };
   }, []);
 
-  const links = [{ label: "Home", href: "/" }, { label: "About", href: "/#about" }];
+  const links = [
+    { label: "Home", href: "/" },
+    { label: "About", href: "/#about" },
+    { label: "Roadmap", href: "/#roadmap" },
+    { label: "IPDC Cell", href: "/opportunities" },
+  ];
   if (session?.role === "STUDENT") {
     links.push(session.membershipStatus === "APPROVED"
       ? { label: "Dashboard", href: "/dashboard" }
@@ -82,11 +87,14 @@ export const Navbar: React.FC = () => {
     <header className="w-full bg-white/85 border-b border-slate-200/80 sticky top-0 z-40 backdrop-blur-xl shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center text-white shadow-sm">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center text-white shadow-sm shadow-emerald-500/30 transition group-hover:scale-105">
             <Cpu className="w-5 h-5" />
           </div>
           <div>
-            <span className="font-bold text-slate-900 text-base tracking-tight">{defaultClubConfig.clubName}</span>
+            <div className="flex items-center gap-1.5">
+              <span className="font-bold text-slate-900 text-base tracking-tight">{defaultClubConfig.clubName}</span>
+              <span className="hidden rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 font-mono text-[10px] text-emerald-700 sm:inline">IoT Club</span>
+            </div>
             <p className="text-[11px] text-emerald-600 tracking-wide font-medium hidden sm:block">{defaultClubConfig.collegeName}</p>
           </div>
         </Link>
