@@ -360,8 +360,8 @@ async function runIntegratedRegistrationAuthTests() {
     const { data: studentProf } = await supabaseAdmin.from('student_profiles').select('*').eq('user_id', studentUserId).single()
     assert.equal(studentProf.registration_id, generatedRegistrationId, 'student_profiles.registration_id matches')
     assert.equal(studentProf.register_number, SYNTHETIC_STUDENT.rollNumber, 'register_number matches')
-    assert.equal(studentProf.college_email, SYNTHETIC_STUDENT.emailAddress, 'legacy college_email matches account')
-    assert.equal(studentProf.personal_email, SYNTHETIC_STUDENT.emailAddress, 'legacy personal_email matches account')
+    assert.equal(studentProf.college_email, null, 'non-SIET account is not duplicated into legacy college_email')
+    assert.equal(studentProf.personal_email, SYNTHETIC_STUDENT.emailAddress, 'legacy personal_email preserves the account email')
 
     const { data: app } = await supabaseAdmin.from('membership_applications').select('*').eq('user_id', studentUserId).single()
     assert.equal(app.registration_id, generatedRegistrationId, 'membership_applications.registration_id matches')
@@ -713,7 +713,7 @@ async function runIntegratedRegistrationAuthTests() {
       assert.ok(personalUserId, 'Personal-email user exists')
       const { data: personalProfile } = await supabaseAdmin.from('student_profiles')
         .select('college_email,personal_email').eq('user_id', personalUserId).single()
-      assert.equal(personalProfile?.college_email, personalAddress)
+      assert.equal(personalProfile?.college_email, null)
       assert.equal(personalProfile?.personal_email, personalAddress)
       console.log('✓ PERSONAL EMAIL SUBMISSION PASSED: One personal address creates the account and application.')
     } finally {

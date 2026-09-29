@@ -9,7 +9,7 @@ export default function HomePage() {
           <h1 className="max-w-3xl text-4xl sm:text-6xl font-extrabold leading-tight">Internet of Things Club</h1>
           <p className="max-w-2xl text-base sm:text-lg text-emerald-50 leading-relaxed">A student community for learning connected systems, exploring hardware, and building thoughtful engineering projects.</p>
           <div className="flex flex-wrap gap-3">
-            <Link href="/register" className="px-6 py-3 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-emerald-950 font-bold">Apply to join</Link>
+            <Link href="/register" className="px-6 py-3 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-emerald-950 font-bold">Join IoT Club</Link>
             <Link href="/about" className="px-6 py-3 rounded-xl border border-white/40 hover:bg-white/10 text-white font-semibold">About the club</Link>
           </div>
         </div>
