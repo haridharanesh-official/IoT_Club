@@ -146,16 +146,10 @@ export const Footer: React.FC = () => {
                 <Link href="/register" className="hover:text-emerald-700 transition font-semibold text-emerald-600">Join Club</Link>
               </li>
               <li>
-                <Link href="/opportunities" className="hover:text-emerald-700 transition">Hackathons</Link>
-              </li>
-              <li>
                 <Link href="/projects" className="hover:text-emerald-700 transition">Projects</Link>
               </li>
               <li>
                 <Link href="/events" className="hover:text-emerald-700 transition">Events</Link>
-              </li>
-              <li>
-                <Link href="/opportunities" className="hover:text-emerald-700 transition">Competitions</Link>
               </li>
             </ul>
           </div>

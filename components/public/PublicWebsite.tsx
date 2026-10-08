@@ -448,53 +448,6 @@ export const PublicWebsite: React.FC = () => {
       </section>
 
       {/* ---------------------------------------------------- */}
-      {/* PROJECT DEVELOPMENT CELL & HACKATHONS                */}
-      {/* ---------------------------------------------------- */}
-      <section className="py-14 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="glass-card p-8 rounded-3xl">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-            <div className="lg:col-span-6 space-y-4">
-              <span className="px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium">
-                IPDC Support
-              </span>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
-                IoT Project Development Cell
-              </h2>
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                The IoT Club maintains a shared competition calendar and supports student teams with hardware components, circuit design, cloud accounts, and internal mock hackathons.
-              </p>
-              <div className="flex flex-wrap gap-2 text-xs font-medium text-slate-700">
-                <span className="px-3 py-1 rounded-xl bg-slate-100 border border-slate-200">Problem Identification</span>
-                <span className="px-3 py-1 rounded-xl bg-slate-100 border border-slate-200">Hardware Prototype</span>
-                <span className="px-3 py-1 rounded-xl bg-slate-100 border border-slate-200">Software Integration</span>
-                <span className="px-3 py-1 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold">Demo & Submission</span>
-              </div>
-            </div>
-
-            <div className="lg:col-span-6">
-              <div className="glass-card-mint p-6 rounded-2xl space-y-3">
-                <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                  <Award className="w-4 h-4 text-emerald-700" /> Build to Compete
-                </h4>
-                <p className="text-xs text-slate-700 leading-relaxed">
-                  Join internal project reviews, test your prototypes against evaluation rubrics, and represent Sri Shakthi Institute at national competitions with club faculty mentorship.
-                </p>
-                <div className="pt-1">
-                  <Link
-                    href="/opportunities"
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-800"
-                  >
-                    <span>View Upcoming Hackathons</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ---------------------------------------------------- */}
       {/* READY TO JOIN? — CLEAN FRIENDLY CTA                  */}
       {/* ---------------------------------------------------- */}
       <section className="py-14 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
