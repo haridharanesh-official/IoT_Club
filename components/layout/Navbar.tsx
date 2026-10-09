@@ -52,7 +52,6 @@ export const Navbar: React.FC = () => {
         { label: "Home", href: "/" },
         { label: "About", href: "/#about" },
         { label: "Roadmap", href: "/#roadmap" },
-        ...(authEmail ? [{ label: "Competitions", href: "/opportunities" }] : []),
       ];
     }
 
@@ -64,7 +63,6 @@ export const Navbar: React.FC = () => {
           { label: "Hardware Approvals", href: "/teacher/hardware" },
           { label: "Batch Analytics", href: "/teacher/analytics" },
           { label: "Workshops", href: "/events" },
-          { label: "Competitions", href: "/opportunities" },
         ];
       case "CLUB_LEAD":
         return [
@@ -73,7 +71,6 @@ export const Navbar: React.FC = () => {
           { label: "Teams & Recruitment", href: "/projects/teams" },
           { label: "Live Lab Telemetry", href: "/lab/live" },
           { label: "Challenges", href: "/challenges" },
-          { label: "Competitions", href: "/opportunities" },
         ];
       case "ADMIN":
         return [
@@ -84,7 +81,6 @@ export const Navbar: React.FC = () => {
           { label: "Live Lab Telemetry", href: "/lab/live" },
           { label: "Audit Logs", href: "/admin/audit" },
           { label: "Verify Cert", href: "/verify" },
-          { label: "Competitions", href: "/opportunities" },
         ];
       case "STUDENT":
       default:
@@ -93,9 +89,7 @@ export const Navbar: React.FC = () => {
           { label: "Skill Tree", href: "/learn/skills" },
           { label: "Projects", href: "/projects" },
           { label: "IoT Lab", href: "/lab" },
-          { label: "Competitions", href: "/opportunities" },
           { label: "Verify Cert", href: "/verify" },
-          { label: "Competitions", href: "/opportunities" },
           { label: "Profile", href: `/member/${student.username}` },
         ];
     }
